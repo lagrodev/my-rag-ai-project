@@ -2,6 +2,7 @@ package ai.chat.service.impl;
 
 import ai.chat.config.MinioProperties;
 import ai.chat.rest.dto.events.DeleteDocumentEvent;
+import ai.chat.rest.dto.events.UploadFileEvent;
 import ai.chat.service.MinIoService;
 import ai.chat.utils.UtilsGenerator;
 import io.minio.GetObjectArgs;
@@ -10,6 +11,7 @@ import io.minio.PutObjectArgs;
 import io.minio.RemoveObjectArgs;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -38,8 +40,17 @@ public class MinIoServiceImpl implements MinIoService {
                         .stream(inputStream, size, -1)
                         .build()
         );
+        // todo слушатель
+        UploadFileEvent event = new UploadFileEvent(
+                name, contentType, size
+        );
+
+        eventPublisher.publishEvent(event);
         return name;
     }
+
+    private final ApplicationEventPublisher eventPublisher;
+
 
     @Override
     @SneakyThrows

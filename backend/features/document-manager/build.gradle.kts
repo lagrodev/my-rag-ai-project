@@ -35,6 +35,10 @@ dependencies{
     compileOnly("org.projectlombok:lombok")
     annotationProcessor("org.projectlombok:lombok")
 
+    //  langchain4j
+    implementation("dev.langchain4j:langchain4j:1.11.0")
+    implementation("dev.langchain4j:langchain4j-open-ai:1.11.0")
+
     // mapstruct lombok binding
     annotationProcessor("org.projectlombok:lombok-mapstruct-binding:0.2.0")
 }
