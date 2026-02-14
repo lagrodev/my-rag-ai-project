@@ -43,11 +43,6 @@ dependencies {
     // Подключаем общие штуки (если нужны в main)
     implementation(project(":common:core-utils"))
 
-    // minIo
-    implementation("io.minio:minio:8.6.0")
-    // mapstruct
-    implementation("org.mapstruct:mapstruct:1.7.0.Beta1")
-    annotationProcessor("org.mapstruct:mapstruct-processor:1.7.0.Beta1")
 
 
     // Web dependencies

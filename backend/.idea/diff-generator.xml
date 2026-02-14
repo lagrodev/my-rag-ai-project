@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="DiffGenerationConfig">
-    <option name="sourceModelValue" value="rag-backend.app.main:entityManagerFactory" />
+    <option name="sourceModelValue" value="rag-backend.features.rag-core.main:rag-backend.features.rag-core.main" />
     <option name="targetDbValue" value="6d450656-96d3-4673-980b-a6f476ab0e0c__rag_db_content" />
   </component>
 </project>
