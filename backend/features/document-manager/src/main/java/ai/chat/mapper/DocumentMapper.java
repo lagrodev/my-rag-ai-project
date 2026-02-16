@@ -7,6 +7,5 @@ import org.mapstruct.Mapping;
 
 @Mapper(componentModel = "spring")
 public interface DocumentMapper {
-    @Mapping(target = "isIndexed", constant = "false") // Default value for new documents
     DocumentDto toDto(Document document);
 }

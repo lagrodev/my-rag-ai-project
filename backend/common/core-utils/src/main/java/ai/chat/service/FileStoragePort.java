@@ -6,7 +6,7 @@ public interface FileStoragePort {
     String uploadFile(
             String objectName, InputStream inputStream, String contentType, long size
     );
-    InputStream getFile(String objectName);
+    String getPresignedDownloadUrl(String objectName);
 
     void removeFile(String minioPath);
 }

@@ -2,6 +2,21 @@ server:
   port: 8080 # Порт твоего приложения
 
 spring:
+
+  kafka:
+    bootstrap-servers: localhost:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+    consumer:
+      group-id: rag-java-group
+      auto-offset-reset: earliest # чтобы читать при падении все, что было в топике
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonSerializer
+    properties:
+      spring.json.trusted.packages: "*"
+      spring.json.ignored-type-headers: false
+
   application:
     name: rag-backend
 
@@ -35,6 +50,9 @@ spring:
         jwt:
           issuer-uri: http://localhost:8081/realms/rag-realm
           jwk-set-uri: http://localhost:8081/realms/rag-realm/protocol/openid-connect/certs
+
+
+
 
 minio:
   url: http://localhost:9000

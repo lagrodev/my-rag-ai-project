@@ -20,11 +20,13 @@ import java.util.UUID;
 @AllArgsConstructor
 @Builder
 public class Chunk extends AbstractEntity {
-    @Column(name = "document_id", nullable = false)
-    private UUID documentId;
+    @Column(name = "file_asset_id", nullable = false)
+    private UUID file_asset_id;
 
     @Column(columnDefinition = "text", nullable = false)
     private String content;
+
+
 
     @Convert(converter = VectorConverter.class) // Подключаем конвертер
     @Column(columnDefinition = "vector")

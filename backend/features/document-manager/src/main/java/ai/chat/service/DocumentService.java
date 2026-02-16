@@ -23,10 +23,8 @@ public interface DocumentService {
      */
     DocumentDto getDocumentMetadata(UUID id, UUID userId);
 
-    /**
-     * Скачивание самого файла (поток байтов из MinIO).
-     */
-    Resource downloadDocument(UUID id, UUID userId);
+
+    String getDocumentDownloadUrl(UUID id, UUID userId);
 
     /**
      * Список документов пользователя с пагинацией.

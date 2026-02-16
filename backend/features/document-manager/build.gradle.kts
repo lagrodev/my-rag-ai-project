@@ -25,6 +25,10 @@ dependencies{
     implementation("org.springframework.boot:spring-boot-starter-security")
     implementation("org.springframework.boot:spring-boot-starter-security-oauth2-resource-server")
 
+
+    // kafka
+    implementation("org.springframework.kafka:spring-kafka")
+
     implementation(project(":common:core-utils")) // Если там есть какие-то утилиты
     implementation(project(":features:document-manager")) // Чтобы иметь доступ к DocumentDto или сущностям (опционально, лучше общаться через ивенты)
     // Tika

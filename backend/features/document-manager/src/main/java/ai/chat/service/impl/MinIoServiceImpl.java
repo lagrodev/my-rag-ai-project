@@ -4,10 +4,8 @@ import ai.chat.config.MinioProperties;
 import ai.chat.rest.dto.events.DeleteDocumentEvent;
 import ai.chat.service.FileStoragePort;
 import ai.chat.utils.UtilsGenerator;
-import io.minio.GetObjectArgs;
-import io.minio.MinioClient;
-import io.minio.PutObjectArgs;
-import io.minio.RemoveObjectArgs;
+import io.minio.*;
+import io.minio.http.Method;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import org.springframework.context.event.EventListener;
@@ -16,6 +14,7 @@ import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 
 import java.io.InputStream;
+import java.util.concurrent.TimeUnit;
 
 @Service
 @RequiredArgsConstructor
@@ -44,13 +43,16 @@ public class MinIoServiceImpl implements FileStoragePort {
 
 
 
-    @Override
     @SneakyThrows
-    public InputStream getFile(String objectName) {
-        return minioClient.getObject(
-                GetObjectArgs.builder()
+    @Override
+    public String getPresignedDownloadUrl(String objectName) {
+        // Генерируем ссылку, которая будет жить 1 час (3600 секунд)
+        return minioClient.getPresignedObjectUrl(
+                GetPresignedObjectUrlArgs.builder()
+                        .method(Method.GET)
                         .bucket(minioProperties.getBucketName())
                         .object(objectName)
+                        .expiry(1, TimeUnit.HOURS)
                         .build()
         );
     }

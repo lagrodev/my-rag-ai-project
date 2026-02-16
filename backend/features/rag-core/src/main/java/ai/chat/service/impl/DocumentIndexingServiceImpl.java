@@ -31,6 +31,6 @@ public class DocumentIndexingServiceImpl implements DocumentIndexingService {
                                 .build();
                 }).toList();
         chunkRepository.saveAll(chunks);
-
     }
+
 }

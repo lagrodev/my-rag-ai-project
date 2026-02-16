@@ -42,7 +42,7 @@ dependencies {
 
     // Подключаем общие штуки (если нужны в main)
     implementation(project(":common:core-utils"))
-
+    implementation("org.springframework.boot:spring-boot-starter-kafka")
 
 
     // Web dependencies

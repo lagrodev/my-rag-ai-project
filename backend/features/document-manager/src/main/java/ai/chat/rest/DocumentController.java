@@ -54,22 +54,14 @@ public class DocumentController {
     }
 
     @GetMapping("/{id}/download")
-    public ResponseEntity<@NonNull Resource> downloadDocument(
+    public ResponseEntity<@NonNull String> downloadDocument(
             @PathVariable UUID id,
             @AuthenticationPrincipal Jwt jwt
     ) {
         UUID userId = getUserIdFromJwt(jwt);
-        DocumentDto metadata = documentService.getDocumentMetadata(id, userId); // Получаем имя файла для заголовка
-        Resource resource = documentService.downloadDocument(id, userId);
-
-
-        String encodedFilename = java.net.URLEncoder.encode(metadata.filename(), java.nio.charset.StandardCharsets.UTF_8)
-                .replace("+", "%20");
-
+        String url = documentService.getDocumentDownloadUrl(id, userId);
         return ResponseEntity.ok()
-                .contentType(MediaType.parseMediaType(metadata.contentType())) // Лучше реальный тип, чем octet-stream
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + encodedFilename + "\"; filename*=UTF-8''" + encodedFilename)
-                .body(resource);
+                .body(url);
     }
 
     @GetMapping("/search")

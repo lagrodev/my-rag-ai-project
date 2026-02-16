@@ -12,24 +12,16 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+// док отдельного пользователя
 public class Document extends AbstractEntity {
     @Column(nullable = false)
-    private String filename;
-
-    @Column(name = "content_type")
-    private String contentType; // например "application/pdf"
-
-    // Данные для MinIO
-    @Column(name = "minio_bucket", nullable = false)
-    private String minioBucket;
-
-    @Column(name = "minio_path", nullable = false) // Путь внутри бакета (чтобы не терять)
-    private String minioPath;
-
-    @Column(name = "file_size")
-    private Long fileSize;
+    private String filename; // как пользователь назвал файл
 
     // Кто загрузил (пока просто ID, связей @ManyToOne нет, т.к. юзеры в Keycloak)
     @Column(name = "uploaded_by")
     private UUID uploadedBy;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "file_asset_id", nullable = false)
+    private FileAsset fileAsset; // Ссылка на уникальный кешированный файл
 }

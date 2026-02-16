@@ -20,7 +20,6 @@ services:
       timeout: 5s
       retries: 5
 
-
   minio:
     image: minio/minio:latest
     container_name: rag-minio
@@ -58,17 +57,57 @@ services:
     networks:
       - rag-network
 
-  keycloak: # rag-realm
+  keycloak: 
     image: quay.io/keycloak/keycloak:23.0.0
     container_name: rag-keycloak
     environment:
       KEYCLOAK_ADMIN: admin
       KEYCLOAK_ADMIN_PASSWORD: admin
-    command: start-dev # Режим разработки (быстрый старт)
+    command: start-dev 
     ports:
-      - "8081:8080" # Внимание: порт 8081, чтобы не конфликтовал с твоим Java app (8080)
+      - "8081:8080" # Java на 8080
     networks:
       - rag-network
+
+  # --- НОВЫЙ БЛОК REDPANDA ---
+  redpanda:
+    image: docker.redpanda.com/redpandadata/redpanda:v23.3.11
+    container_name: rag-redpanda
+    restart: unless-stopped
+    ports:
+      - "9092:9092"   # Внешний порт для твоей IDE (Spring Boot / Python на хосте)
+      - "29092:29092" # Внутренний порт для Docker-сети
+    volumes:
+      - redpanda_data:/var/lib/redpanda/data
+    networks:
+      - rag-network
+    command:
+      - redpanda
+      - start
+      - --smp 1
+      - --memory 1G
+      - --reserve-memory 0M
+      - --overprovisioned
+      - --node-id 0
+      # Слушаем на двух портах
+      - --kafka-addr internal://0.0.0.0:29092,external://0.0.0.0:9092
+      # Отдаем клиентам правильные адреса (важнейшая строчка!)
+      - --advertise-kafka-addr internal://redpanda:29092,external://localhost:9092
+
+  redpanda-console:
+    image: docker.redpanda.com/redpandadata/console:v2.4.3
+    container_name: rag-redpanda-console
+    restart: unless-stopped
+    ports:
+      - "8082:8080" # UI Консоли будет доступен на localhost:8082
+    environment:
+      CONFIG_FILEPATH: /etc/redpanda/redpanda-console-config.yaml
+    volumes:
+      - ./infrastructure/config/redpanda-console.yaml:/etc/redpanda/redpanda-console-config.yaml:ro
+    networks:
+      - rag-network
+    depends_on:
+      - redpanda
 
 networks:
   rag-network:
@@ -77,3 +116,4 @@ networks:
 volumes:
   postgres_data:
   minio_data:
+  redpanda_data:

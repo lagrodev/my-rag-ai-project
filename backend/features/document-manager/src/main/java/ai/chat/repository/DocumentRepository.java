@@ -5,8 +5,10 @@ import org.jspecify.annotations.NonNull;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
+import java.util.Optional;
 import java.util.UUID;
 
 @Repository
@@ -17,4 +19,13 @@ public interface DocumentRepository extends JpaRepository<@NonNull Document, @No
     Page<@NonNull Document> findByFilenameContainingIgnoreCaseAndUploadedBy(String filename, UUID uploadedBy, Pageable pageable);
 
     Page<@NonNull Document>  findAllByUploadedBy(UUID uploadedBy, Pageable pageable);
+
+    @Query(
+            """
+            select d from Document d
+            join fetch d.fileAsset
+            where d.id = :id and d.uploadedBy = :uploadedBy
+        """
+    )
+    Optional<Document> findByIdAndUserIdWithAsset(UUID id, UUID uploadedBy);
 }
