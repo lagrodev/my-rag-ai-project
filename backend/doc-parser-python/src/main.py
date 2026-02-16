@@ -1,66 +1,86 @@
+"""doc-parser-python — точка входа.
+
+Запускает Kafka consumer, который слушает pdf-incoming topic,
+обрабатывает PDF → Markdown → JSON и публикует результат.
+"""
+
 import asyncio
-import json
+import signal
+
 import structlog
-from aiokafka import AIOKafkaConsumer, AIOKafkaProducer
-from src.domain.models import IncomingEvent
+
+from src.core.config import settings
+from src.core.logger import setup_logging
+from src.application.service import DocumentProcessingService
+from src.infrastructure.kafka.consumer import KafkaEventConsumer
+from src.infrastructure.kafka.producer import KafkaEventProducer
 from src.infrastructure.minio.storage import MinioStorage
 from src.infrastructure.pdf.processor import PDFProcessor
-from src.application.service import DocumentProcessingService
 
+setup_logging()
 logger = structlog.get_logger()
 
-# В реальности берите из pydantic-settings (config.py)
-KAFKA_BROKER = "kafka:9092"
-IN_TOPIC = "pdf-incoming"
-OUT_TOPIC = "json-outgoing"
-CONSUMER_GROUP = "pdf-processor-group"
 
+async def main() -> None:
+    """Инициализация инфраструктуры и запуск consumer-цикла."""
 
-class KafkaProducerWrapper:
-    def __init__(self, producer: AIOKafkaProducer, topic: str):
-        self.producer = producer
-        self.topic = topic
-
-    async def send_message(self, message: str):
-        await self.producer.send_and_wait(self.topic, message.encode('utf-8'))
-
-
-async def main():
-    # Инициализация инфраструктуры
-    storage = MinioStorage(endpoint="minio:9000", access_key="minioadmin", secret_key="minioadmin")
-    pdf_processor = PDFProcessor()
-
-    producer = AIOKafkaProducer(bootstrap_servers=KAFKA_BROKER)
-    await producer.start()
-
-    producer_wrapper = KafkaProducerWrapper(producer, OUT_TOPIC)
-    service = DocumentProcessingService(storage, pdf_processor, producer_wrapper)
-
-    # Настройка consumer (At-Least-Once семантика: enable_auto_commit=False)
-    consumer = AIOKafkaConsumer(
-        IN_TOPIC,
-        bootstrap_servers=KAFKA_BROKER,
-        group_id=CONSUMER_GROUP,
-        enable_auto_commit=False,
-        value_deserializer=lambda m: json.loads(m.decode('utf-8'))
+    logger.info(
+        "service_starting",
+        kafka=settings.kafka_bootstrap_servers,
+        minio=settings.minio_endpoint,
+        input_topic=settings.kafka_input_topic,
+        output_topic=settings.kafka_output_topic,
     )
+
+    # ── Инфраструктурные компоненты ───────────────────────────────
+    storage = MinioStorage()
+    pdf_processor = PDFProcessor()
+    producer = KafkaEventProducer()
+    consumer = KafkaEventConsumer()
+
+    # ── Application service ───────────────────────────────────────
+    service = DocumentProcessingService(storage, pdf_processor, producer)
+
+    # ── Graceful shutdown ─────────────────────────────────────────
+    loop = asyncio.get_running_loop()
+    shutdown_event = asyncio.Event()
+
+    def _signal_handler() -> None:
+        logger.info("shutdown_signal_received")
+        shutdown_event.set()
+
+    try:
+        for sig in (signal.SIGINT, signal.SIGTERM):
+            loop.add_signal_handler(sig, _signal_handler)
+    except NotImplementedError:
+        # Windows не поддерживает add_signal_handler — KeyboardInterrupt
+        # перехватывается через try/except в consumer loop
+        pass
+
+    # ── Запуск ────────────────────────────────────────────────────
+    await producer.start()
     await consumer.start()
 
     logger.info("service_started")
 
-    try:
-        async for msg in consumer:
-            try:
-                event = IncomingEvent(**msg.value)
-                await service.process_event(event)
-                # Коммитим оффсет ТОЛЬКО после успешной обработки или осознанного скипа (At-Least-Once)
-                await consumer.commit()
-            except Exception as e:
-                logger.error("error_processing_message", error=str(e), partition=msg.partition, offset=msg.offset)
-                # Если падает тут, оффсет не коммитится. При перезапуске сообщение прочитается снова.
-    finally:
-        await consumer.stop()
-        await producer.stop()
+    # Запускаем consumer loop и shutdown watcher параллельно
+    consumer_task = asyncio.create_task(
+        consumer.consume(service.process_event)
+    )
+    shutdown_task = asyncio.create_task(shutdown_event.wait())
+
+    done, pending = await asyncio.wait(
+        {consumer_task, shutdown_task},
+        return_when=asyncio.FIRST_COMPLETED,
+    )
+
+    # ── Остановка ─────────────────────────────────────────────────
+    for task in pending:
+        task.cancel()
+
+    await consumer.stop()
+    await producer.stop()
+    logger.info("service_stopped")
 
 
 if __name__ == "__main__":

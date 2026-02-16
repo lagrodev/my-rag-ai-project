@@ -1,46 +1,133 @@
-import io
-import json
+"""Application Service — оркестрация обработки PDF-документов.
+
+Отвечает за:
+1. Idempotency-проверку (пропуск уже обработанных документов)
+2. Скачивание PDF из MinIO
+3. Конвертацию PDF → Markdown (с очисткой)
+4. Сохранение JSON-результата в MinIO
+5. Отправку Kafka-события о завершении
+6. Очистку временных файлов
+"""
+
 import asyncio
-from minio import Minio
-from minio.error import S3Error
-from tenacity import retry, stop_after_attempt, wait_exponential
+import os
+from pathlib import Path
+
 import structlog
+
+from src.core.config import settings
+from src.domain.models import (
+    IncomingEvent,
+    OutgoingEvent,
+    PageChunkModel,
+    ProcessedDocument,
+)
+from src.infrastructure.kafka.producer import KafkaEventProducer
+from src.infrastructure.minio.storage import MinioStorage
+from src.infrastructure.pdf.processor import PDFProcessor
 
 logger = structlog.get_logger()
 
 
-class MinioStorage:
-    def __init__(self, endpoint, access_key, secret_key, secure=False):
-        self.client = Minio(endpoint, access_key=access_key, secret_key=secret_key, secure=secure)
+class DocumentProcessingService:
+    """Сервис обработки PDF-документов (Application layer)."""
 
-    @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10))
-    async def download_file(self, bucket_name: str, object_name: str, file_path: str):
-        logger.info("downloading_from_minio", bucket=bucket_name, object=object_name)
-        await asyncio.to_thread(self.client.fget_object, bucket_name, object_name, file_path)
+    def __init__(
+        self,
+        storage: MinioStorage,
+        pdf_processor: PDFProcessor,
+        producer: KafkaEventProducer,
+    ) -> None:
+        self._storage = storage
+        self._pdf = pdf_processor
+        self._producer = producer
 
-    @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10))
-    async def upload_json(self, bucket_name: str, object_name: str, data: dict):
-        logger.info("uploading_to_minio", bucket=bucket_name, object=object_name)
+    async def process_event(self, event: IncomingEvent) -> None:
+        """Полный pipeline обработки одного входящего события."""
 
-        # Проверяем/создаем корзину
-        exists = await asyncio.to_thread(self.client.bucket_exists, bucket_name)
-        if not exists:
-            await asyncio.to_thread(self.client.make_bucket, bucket_name)
+        log = logger.bind(document_id=event.id)
+        output_bucket = settings.minio_output_bucket
+        output_object = f"{event.id}.json"
 
-        json_bytes = json.dumps(data, ensure_ascii=False).encode('utf-8')
-        json_stream = io.BytesIO(json_bytes)
+        # ── 1. Idempotency: проверяем, не обработан ли уже ────────
+        already_exists = await self._storage.object_exists(
+            output_bucket, output_object
+        )
+        if already_exists:
+            log.info(
+                "document_already_processed",
+                result=f"minio://{output_bucket}/{output_object}",
+            )
+            return
 
-        await asyncio.to_thread(
-            self.client.put_object,
-            bucket_name, object_name, json_stream, length=len(json_bytes), content_type="application/json"
+        # ── 2. Скачиваем PDF из MinIO ─────────────────────────────
+        bucket, object_name = self._parse_minio_path(
+            event.filePath, event.minIoBucket
         )
 
-    async def check_exists(self, bucket_name: str, object_name: str) -> bool:
-        """Для идемпотентности"""
+        temp_dir = Path(settings.temp_dir)
+        temp_dir.mkdir(parents=True, exist_ok=True)
+        local_pdf = str(temp_dir / f"{event.id}.pdf")
+
         try:
-            await asyncio.to_thread(self.client.stat_object, bucket_name, object_name)
-            return True
-        except S3Error as e:
-            if e.code == 'NoSuchKey':
-                return False
-            raise
+            await self._storage.download_file(bucket, object_name, local_pdf)
+
+            # ── 3. PDF → очищенный Markdown (по страницам) ────────
+            page_chunks = await asyncio.to_thread(
+                self._pdf.convert_to_markdown, local_pdf
+            )
+
+            # ── 4. Формируем JSON-документ и загружаем в MinIO ────
+            doc = ProcessedDocument(
+                document_id=event.id,
+                source_file=event.filePath,
+                pages=[PageChunkModel(**c) for c in page_chunks],
+            )
+            await self._storage.upload_json(
+                output_bucket, output_object, doc.to_storage_dict()
+            )
+
+            # ── 5. Отправляем Kafka-событие ───────────────────────
+            out_event = OutgoingEvent(
+                document_id=event.id,
+                result_bucket=output_bucket,
+                result_file=f"minio://{output_bucket}/{output_object}",
+                status="processed",
+            )
+            await self._producer.send_event(out_event)
+
+            log.info(
+                "document_processed_ok",
+                result=f"minio://{output_bucket}/{output_object}",
+            )
+
+        finally:
+            # ── 6. Очистка временных файлов ───────────────────────
+            self._cleanup(local_pdf)
+
+    # ── Вспомогательные методы ────────────────────────────────────
+
+    @staticmethod
+    def _parse_minio_path(
+        file_path: str, fallback_bucket: str
+    ) -> tuple[str, str]:
+        """Извлекает (bucket, object_name) из minio://bucket/path.
+
+        Если file_path не начинается с «minio://», используется
+        fallback_bucket, а file_path считается именем объекта.
+        """
+        prefix = "minio://"
+        if file_path.startswith(prefix):
+            rest = file_path[len(prefix) :]
+            parts = rest.split("/", 1)
+            if len(parts) == 2:
+                return parts[0], parts[1]
+        return fallback_bucket, file_path
+
+    @staticmethod
+    def _cleanup(path: str) -> None:
+        try:
+            if os.path.exists(path):
+                os.remove(path)
+        except OSError:
+            logger.warning("temp_file_cleanup_failed", path=path)
