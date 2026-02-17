@@ -52,18 +52,20 @@ services:
       /usr/bin/mc alias set myminio http://minio:9000 admin admin12345;
       /usr/bin/mc mb myminio/rag-documents;
       /usr/bin/mc anonymous set public myminio/rag-documents;
+      /usr/bin/mc mb myminio/processed-json-doc;
+      /usr/bin/mc anonymous set public myminio/processed-json-doc;
       exit 0;
       "
     networks:
       - rag-network
 
-  keycloak: 
+  keycloak:
     image: quay.io/keycloak/keycloak:23.0.0
     container_name: rag-keycloak
     environment:
       KEYCLOAK_ADMIN: admin
       KEYCLOAK_ADMIN_PASSWORD: admin
-    command: start-dev 
+    command: start-dev
     ports:
       - "8081:8080" # Java на 8080
     networks:
@@ -102,12 +104,35 @@ services:
       - "8082:8080" # UI Консоли будет доступен на localhost:8082
     environment:
       CONFIG_FILEPATH: /etc/redpanda/redpanda-console-config.yaml
+    # mount the actual config file from this infrastructure/ folder (was pointing to repo-root `config/` dir)
     volumes:
-      - ./infrastructure/config/redpanda-console.yaml:/etc/redpanda/redpanda-console-config.yaml:ro
+      - ./config/redpanda-console.yaml:/etc/redpanda/redpanda-console-config.yaml:ro
     networks:
       - rag-network
     depends_on:
       - redpanda
+
+
+  doc-parser:
+    build:
+      context: ../backend/doc-parser-python
+      dockerfile: Dockerfile
+    container_name: rag-doc-parser
+    restart: unless-stopped
+    environment:
+      # ВАЖНО: Внутри докера стучимся по внутренним портам и именам контейнеров!
+      - KAFKA_BOOTSTRAP_SERVERS=redpanda:29092
+      - MINIO_ENDPOINT=minio:9000
+      - MINIO_ACCESS_KEY=${MINIO_ROOT_USER:-admin}
+      - MINIO_SECRET_KEY=${MINIO_ROOT_PASSWORD:-admin12345}
+      - MINIO_SECURE=false
+    networks:
+      - rag-network
+    depends_on:
+      redpanda:
+        condition: service_started
+      minio:
+        condition: service_healthy
 
 networks:
   rag-network:
