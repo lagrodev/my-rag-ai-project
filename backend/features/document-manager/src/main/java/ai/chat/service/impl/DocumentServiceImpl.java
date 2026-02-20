@@ -3,33 +3,22 @@ package ai.chat.service.impl;
 import ai.chat.config.MinioProperties;
 import ai.chat.entity.Document;
 import ai.chat.entity.FileAsset;
-import ai.chat.entity.OutboxEvent;
 import ai.chat.exceptions.custom.DocumentNotFoundException;
 import ai.chat.mapper.DocumentMapper;
 import ai.chat.repository.DocumentRepository;
 import ai.chat.repository.FileAssetRepository;
-import ai.chat.rest.dto.DocumentDto;
+import ai.chat.rest.dto.*;
 import ai.chat.rest.dto.events.DeleteDocumentEvent;
-import ai.chat.rest.dto.UploadFileEvent;
 import ai.chat.service.DocumentService;
 import ai.chat.service.FileStoragePort;
-import ai.chat.utils.UtilsGenerator;
 import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.NonNull;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.multipart.MultipartFile;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.Optional;
 import java.util.UUID;
 
 @RequiredArgsConstructor
@@ -45,72 +34,87 @@ public class DocumentServiceImpl implements DocumentService
     private final FileAssetRepository fileAssetRepository;
 
 
-    /**
-     * Загрузка файла.
-     * 1. Кладет в MinIO
-     * 2. Сохраняет запись в Postgres
-     * 3. Кидает ивент "Файл готов к индексации"
-     */
-
+// 2 варика: есть файл, нет файла. Загрузка через клиент и получение хеша и некст проверка и т.п.
+    @Transactional
     @Override
-    public DocumentDto uploadDocument(MultipartFile file, UUID userId)
-    {
+    public InitUploadResponse initDocumentUpload(InitUploadRequest request, UUID userId) {
 
-        OutboxEvent event = new OutboxEvent();
+        FileAsset asset = fileAssetRepository.findByHash(request.md5Base64Hash()).orElse(null);
 
-
-        Path tempFile = null;
-        try
-        {
-            tempFile = Files.createTempFile("upload-", ".tmp");
-
-            file.transferTo(tempFile);
-            String hash = UtilsGenerator.getHash256FromFile(tempFile.toFile());
-
-            boolean isNewAsset = false;
-            String minIoPath;
-            FileAsset asset = fileAssetRepository.findByHash(hash).orElse(null);
-
-            if (asset == null)
-            {
-                try (InputStream is = Files.newInputStream(tempFile))
-                {
-                    minIoPath = minIoService.uploadFile(hash + ".pdf", is, file.getContentType(), file.getSize());
-                    isNewAsset = true;
-                }
-            }
-            else
-            {
-                minIoPath = asset.getMinioPath();
-            }
-
-            Document userDocument = helper.saveToDatabaseAndPublishEvent(
-                    file, userId, hash, minIoPath, isNewAsset
+        if (asset != null) {
+            Document userDocument = saveToDatabaseAndPublishEvent(
+                    request.fileName(),
+                    asset,
+                    userId, asset.getMinioPath(), false
             );
 
-            return documentMapper.toDto(userDocument);
-
-
-        } catch (IOException e)
-        {
-            throw new RuntimeException(e);
-        } finally
-        {
-            if (tempFile != null)
-            {
-                try
-                {
-                    Files.deleteIfExists(tempFile);
-                } catch (IOException e)
-                {
-                    throw new RuntimeException(e);
-                }
-            }
+            return new InitUploadResponse(null, null, true, documentMapper.toDto(userDocument));
         }
+
+        // 2. Файла нет.
+        PresignedUploadDto presigned = minIoService.uploadFileForPresign(request.fileName(), request.md5Base64Hash());
+
+        return new InitUploadResponse(presigned.uploadUrl(), presigned.uniqueObjectName(), false, null);
     }
 
 
-    private final Helper helper;
+    @Transactional
+    protected Document saveToDatabaseAndPublishEvent(
+            String originalName,
+            FileAsset asset,
+            UUID userId,
+            String minIoPath, boolean isNewAsset
+    )
+    {
+        Document userDocument = Document.builder()
+                .filename(originalName)
+                .uploadedBy(userId)
+                .fileAsset(asset)
+                .build();
+
+        userDocument = documentRepository.save(userDocument);
+
+        if (isNewAsset){
+            UploadFileEvent event = new UploadFileEvent(
+                    asset.getId(),
+                    minioProperties.getBucketName(),
+                    minIoPath
+            );
+            eventPublisher.publishEvent(event);
+        }
+
+        return userDocument;
+    }
+
+
+    @Transactional
+    @Override
+    public DocumentDto confirmDocumentUpload(ConfirmUploadRequest request, UUID userId) {
+
+        FileAsset asset = fileAssetRepository.findByHash(request.md5Base64Hash()).orElse(null);
+
+        boolean isNewAsset = false;
+        if (asset == null) {
+            asset = FileAsset.builder()
+                    .minioBucket(minioProperties.getBucketName())
+                    .minioPath(request.minioPath())
+                    .hash(request.md5Base64Hash())
+                    .fileSize(request.fileSize())
+                    .contentType(request.contentType())
+                    .build();
+            asset = fileAssetRepository.save(asset);
+            isNewAsset = true;
+        }
+
+        Document userDocument = saveToDatabaseAndPublishEvent(
+                request.filename(), asset, userId, request.minioPath(), isNewAsset
+        );
+
+        return documentMapper.toDto(userDocument);
+    }
+
+
+
 
     @Override
     public DocumentDto getDocumentMetadata(UUID id, UUID userId)

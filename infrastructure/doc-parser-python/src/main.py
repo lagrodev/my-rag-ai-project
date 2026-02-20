@@ -1,12 +1,6 @@
-"""doc-parser-python — точка входа.
-
-Запускает Kafka consumer, который слушает pdf-incoming topic,
-обрабатывает PDF → Markdown → JSON и публикует результат.
-"""
-
 import asyncio
 import signal
-
+from src.infrastructure.pdf.tree_builder import MarkdownTreeBuilder
 import structlog
 
 from src.core.config import settings
@@ -35,11 +29,12 @@ async def main() -> None:
     # ── Инфраструктурные компоненты ───────────────────────────────
     storage = MinioStorage()
     pdf_processor = PDFProcessor()
+    tree_builder = MarkdownTreeBuilder()
     producer = KafkaEventProducer()
     consumer = KafkaEventConsumer()
 
     # ── Application service ───────────────────────────────────────
-    service = DocumentProcessingService(storage, pdf_processor, producer)
+    service = DocumentProcessingService(storage, pdf_processor, tree_builder, producer)
 
     # ── Graceful shutdown ─────────────────────────────────────────
     loop = asyncio.get_running_loop()
@@ -63,7 +58,6 @@ async def main() -> None:
 
     logger.info("service_started")
 
-    # Запускаем consumer loop и shutdown watcher параллельно
     consumer_task = asyncio.create_task(
         consumer.consume(service.process_event)
     )

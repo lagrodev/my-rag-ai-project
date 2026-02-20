@@ -9,10 +9,10 @@ spring:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
     consumer:
-      group-id: rag-java-group
+      group-id: chat-ai-group
       auto-offset-reset: earliest # чтобы читать при падении все, что было в топике
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      value-deserializer: org.springframework.kafka.support.serializer.JsonSerializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
     properties:
       spring.json.trusted.packages: "*"
       spring.json.ignored-type-headers: false

@@ -17,3 +17,5 @@ structlog>=24.1.0
 
 # ── Retry logic ──────────────────────────────────────
 tenacity>=8.2.0,<10.0
+
+pymupdf-layout>=0.0.1

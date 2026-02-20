@@ -14,7 +14,7 @@ import org.springframework.transaction.event.TransactionalEventListener;
 @RequiredArgsConstructor
 public class KafkaEventPublisher {
     private final KafkaTemplate<String, Object> kafkaTemplate;
-
+// todo улучшить реализацию
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handleUploadFileEvent(UploadFileEvent event)
     {

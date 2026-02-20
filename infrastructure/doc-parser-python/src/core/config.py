@@ -19,7 +19,7 @@ class Settings(BaseSettings):
         description="Consumer group ID",
     )
     kafka_input_topic: str = Field(
-        default="pdf-incoming",
+        default="document-parse-tasks",
         description="Topic для входящих PDF-событий",
     )
     kafka_output_topic: str = Field(

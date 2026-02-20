@@ -1,6 +1,7 @@
 package ai.chat.service.impl;
 
 import ai.chat.config.MinioProperties;
+import ai.chat.rest.dto.PresignedUploadDto;
 import ai.chat.rest.dto.events.DeleteDocumentEvent;
 import ai.chat.service.FileStoragePort;
 import ai.chat.utils.UtilsGenerator;
@@ -14,6 +15,8 @@ import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 
 import java.io.InputStream;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 @Service
@@ -40,7 +43,28 @@ public class MinIoServiceImpl implements FileStoragePort {
         return name;
     }
 
+    @SneakyThrows
+    @Override
+    public PresignedUploadDto uploadFileForPresign(String originalFilename, String base64Md5Hash)
+    {
+        String uniqueObjectName = UtilsGenerator.generateUniqueObjectName(originalFilename);
 
+        // Жестко привязываем MD5 к подписи ссылки
+        Map<String, String> headers = new HashMap<>();
+        headers.put("Content-MD5", base64Md5Hash);
+
+        String uploadUrl = minioClient.getPresignedObjectUrl(
+                GetPresignedObjectUrlArgs.builder()
+                        .method(Method.PUT)
+                        .bucket(minioProperties.getBucketName())
+                        .object(uniqueObjectName)
+                        .expiry(15, TimeUnit.MINUTES)
+                        .extraHeaders(headers) // Вшиваем хеш!
+                        .build()
+        );
+
+        return new PresignedUploadDto(uploadUrl, uniqueObjectName);
+    }
 
 
     @SneakyThrows
@@ -73,4 +97,18 @@ public class MinIoServiceImpl implements FileStoragePort {
     public void handleDocumentDeleted(DeleteDocumentEvent event) {
         removeFile(event.minIoPath());
     }
+
+
+    @SneakyThrows
+    @Override
+    public InputStream getFile(String bucketName, String objectName) {
+        return minioClient.getObject(
+                GetObjectArgs.builder()
+                        .bucket(bucketName)
+                        .object(objectName)
+                        .build()
+        );
+    }
+
+
 }

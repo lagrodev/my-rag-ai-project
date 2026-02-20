@@ -1,10 +1,14 @@
 package ai.chat.service;
 
+import ai.chat.rest.dto.ConfirmUploadRequest;
 import ai.chat.rest.dto.DocumentDto;
+import ai.chat.rest.dto.InitUploadRequest;
+import ai.chat.rest.dto.InitUploadResponse;
 import org.jspecify.annotations.NonNull;
 import org.springframework.core.io.Resource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.UUID;
@@ -16,7 +20,13 @@ public interface DocumentService {
      * 2. Сохраняет запись в Postgres
      * 3. Кидает ивент "Файл готов к индексации"
      */
-    DocumentDto uploadDocument(MultipartFile file, UUID userId);
+
+
+    @Transactional
+    InitUploadResponse initDocumentUpload(InitUploadRequest request, UUID userId);
+
+    @Transactional
+    DocumentDto confirmDocumentUpload(ConfirmUploadRequest request, UUID userId);
 
     /**
      * Получение информации о документе (без скачивания байтов).

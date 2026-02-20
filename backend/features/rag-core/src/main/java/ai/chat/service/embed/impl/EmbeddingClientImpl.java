@@ -14,4 +14,12 @@ public class EmbeddingClientImpl implements EmbeddingClient
     public List<Double> generateEmbedding(String text){
         return java.util.Collections.nCopies(1536, 0.0);
     }
+
+    @Override
+    public List<List<Double>> generateEmbeddingsBatch(List<String> allTexts)
+    {
+        return allTexts.stream().map(
+                this::generateEmbedding
+        ).toList();
+    }
 }

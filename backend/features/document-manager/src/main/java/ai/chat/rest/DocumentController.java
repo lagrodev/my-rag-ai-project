@@ -1,19 +1,20 @@
 package ai.chat.rest;
 
+import ai.chat.rest.dto.ConfirmUploadRequest;
 import ai.chat.rest.dto.DocumentDto;
+import ai.chat.rest.dto.InitUploadRequest;
+import ai.chat.rest.dto.InitUploadResponse;
 import ai.chat.service.DocumentService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.NonNull;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
-import org.springframework.core.io.Resource;
+
 import java.util.UUID;
 
 
@@ -29,19 +30,32 @@ public class DocumentController {
             @AuthenticationPrincipal Jwt jwt
     ) {
         UUID userId = getUserIdFromJwt(jwt);
+//        return BaseDto.of(DocumentDto);
+        // static BaseDto<T>.of -> responseentity<BaseDTO> = BaseDTO<T> {status, message, error, errorMessage, content: T}
         return ResponseEntity.ok(documentService.findAll(userId, pageable));
     }
 
-    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
 
-    public ResponseEntity<@NonNull DocumentDto> uploadDocument(
-            @RequestParam("file") MultipartFile file,
+    @PostMapping("/init-upload")
+    public ResponseEntity<InitUploadResponse> uploadDocument(
+            @RequestBody @Valid InitUploadRequest request,
             @AuthenticationPrincipal Jwt jwt
     ){
         UUID userId = getUserIdFromJwt(jwt);
-        return ResponseEntity.ok(documentService.uploadDocument(file, userId));
+
+        return ResponseEntity.ok(documentService.initDocumentUpload(request, userId));
     }
 
+
+
+    @PostMapping("/confirm-upload")
+    public ResponseEntity<DocumentDto> confirmDocument(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestBody @Valid ConfirmUploadRequest  request
+    ){
+        UUID userId = getUserIdFromJwt(jwt);
+        return ResponseEntity.ok(documentService.confirmDocumentUpload(request, userId));
+    }
 
 
     @GetMapping("/{id}")

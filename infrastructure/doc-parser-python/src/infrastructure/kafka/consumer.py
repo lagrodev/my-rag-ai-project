@@ -72,6 +72,6 @@ class KafkaEventConsumer:
                 log.info("kafka_offset_committed", document_id=event.id)
             except Exception:
                 log.exception("kafka_message_processing_error")
-                # Offset НЕ коммитится — при рестарте сообщение будет
+                # Offset НЕ коммитится — при рестарте сообщение будет //todo сделать, чтобы сообщения коммитились??
                 # прочитано повторно (At-Least-Once).
                 raise

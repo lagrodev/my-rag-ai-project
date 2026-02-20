@@ -11,6 +11,7 @@ import org.apache.tika.sax.BodyContentHandler;
 import org.springframework.stereotype.Service;
 
 import java.io.InputStream;
+import java.util.UUID;
 
 @Service
 public class FileParserImpl implements FileParser {
@@ -35,4 +36,6 @@ public class FileParserImpl implements FileParser {
 
         return handler.toString();
     }
+
+
 }

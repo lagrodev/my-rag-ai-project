@@ -19,12 +19,14 @@ from src.core.config import settings
 from src.domain.models import (
     IncomingEvent,
     OutgoingEvent,
-    PageChunkModel,
     ProcessedDocument,
 )
+
+from src.infrastructure.pdf.tree_builder import MarkdownTreeBuilder
 from src.infrastructure.kafka.producer import KafkaEventProducer
 from src.infrastructure.minio.storage import MinioStorage
 from src.infrastructure.pdf.processor import PDFProcessor
+from minio.error import S3Error
 
 logger = structlog.get_logger()
 
@@ -36,10 +38,12 @@ class DocumentProcessingService:
         self,
         storage: MinioStorage,
         pdf_processor: PDFProcessor,
+        tree_builder: MarkdownTreeBuilder,
         producer: KafkaEventProducer,
     ) -> None:
         self._storage = storage
         self._pdf = pdf_processor
+        self._tree_builder = tree_builder
         self._producer = producer
 
     async def process_event(self, event: IncomingEvent) -> None:
@@ -56,7 +60,7 @@ class DocumentProcessingService:
         if already_exists:
             log.info(
                 "document_already_processed",
-                result=f"minio://{output_bucket}/{output_object}",
+                result=f"minio://{output_object}",
             )
             return
 
@@ -70,19 +74,30 @@ class DocumentProcessingService:
         local_pdf = str(temp_dir / f"{event.id}.pdf")
 
         try:
-            await self._storage.download_file(bucket, object_name, local_pdf)
+            try:
+                await self._storage.download_file(bucket, object_name, local_pdf)
+            except S3Error as exc:
+                if exc.code == "NoSuchKey":
+                    log.warning("file_missing_in_minio_skipping", object_name=object_name)
+                    return
+                raise
 
             # ── 3. PDF → очищенный Markdown (по страницам) ────────
             page_chunks = await asyncio.to_thread(
                 self._pdf.convert_to_markdown, local_pdf
             )
 
+            tree_data = await asyncio.to_thread(
+                self._tree_builder.build_tree, page_chunks
+            )
+
             # ── 4. Формируем JSON-документ и загружаем в MinIO ────
             doc = ProcessedDocument(
                 document_id=event.id,
                 source_file=event.filePath,
-                pages=[PageChunkModel(**c) for c in page_chunks],
+                tree=tree_data,
             )
+
             await self._storage.upload_json(
                 output_bucket, output_object, doc.to_storage_dict()
             )
@@ -91,7 +106,7 @@ class DocumentProcessingService:
             out_event = OutgoingEvent(
                 document_id=event.id,
                 result_bucket=output_bucket,
-                result_file=f"minio://{output_bucket}/{output_object}",
+                result_file=f"{output_object}",
                 status="processed",
             )
             await self._producer.send_event(out_event)
@@ -106,22 +121,24 @@ class DocumentProcessingService:
             self._cleanup(local_pdf)
 
     # ── Вспомогательные методы ────────────────────────────────────
-
     @staticmethod
     def _parse_minio_path(
-        file_path: str, fallback_bucket: str
+            file_path: str, fallback_bucket: str
     ) -> tuple[str, str]:
-        """Извлекает (bucket, object_name) из minio://bucket/path.
 
-        Если file_path не начинается с «minio://», используется
-        fallback_bucket, а file_path считается именем объекта.
-        """
         prefix = "minio://"
         if file_path.startswith(prefix):
-            rest = file_path[len(prefix) :]
+            rest = file_path[len(prefix):]
             parts = rest.split("/", 1)
             if len(parts) == 2:
                 return parts[0], parts[1]
+
+
+        if file_path.startswith(f"{fallback_bucket}/"):
+            clean_object_name = file_path[len(fallback_bucket) + 1:]
+            return fallback_bucket, clean_object_name
+        # ----------------------
+
         return fallback_bucket, file_path
 
     @staticmethod

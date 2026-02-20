@@ -2,10 +2,7 @@ package ai.chat.entity;
 
 
 import ai.chat.config.VectorConverter;
-import jakarta.persistence.Column;
-import jakarta.persistence.Convert;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.*;
 
 
@@ -20,15 +17,25 @@ import java.util.UUID;
 @AllArgsConstructor
 @Builder
 public class Chunk extends AbstractEntity {
-    @Column(name = "file_asset_id", nullable = false)
-    private UUID file_asset_id;
 
     @Column(columnDefinition = "text", nullable = false)
     private String content;
 
+    @Column(name = "chunk_index")
+    private Integer chunkIndex;
 
 
+    // todo - ссылка на parent_section_id, чтобы в llm улетел весь раздел целиком
     @Convert(converter = VectorConverter.class) // Подключаем конвертер
-    @Column(columnDefinition = "vector")
+    @Column(columnDefinition = "vector(1536)")
     private List<Double> embedding;
+
+
+    @ManyToOne(fetch =  FetchType.LAZY)
+    @JoinColumn(name = "document_section_id")
+    private DocumentSection documentSection;
+
+
+
+
 }

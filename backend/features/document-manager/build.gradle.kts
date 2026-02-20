@@ -30,7 +30,6 @@ dependencies{
     implementation("org.springframework.kafka:spring-kafka")
 
     implementation(project(":common:core-utils")) // Если там есть какие-то утилиты
-    implementation(project(":features:document-manager")) // Чтобы иметь доступ к DocumentDto или сущностям (опционально, лучше общаться через ивенты)
     // Tika
 
 
@@ -38,9 +37,11 @@ dependencies{
     implementation("org.springframework.boot:spring-boot-starter-actuator")
     implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310")
 
+    implementation("org.springframework.boot:spring-boot-starter-validation")
+
     // Annotation Processors
-    implementation("org.mapstruct:mapstruct:1.7.0.Beta1")
-    annotationProcessor("org.mapstruct:mapstruct-processor:1.7.0.Beta1")
+    implementation("org.mapstruct:mapstruct:1.6.3")
+    annotationProcessor("org.mapstruct:mapstruct-processor:1.6.3")
     annotationProcessor("org.projectlombok:lombok-mapstruct-binding:0.2.0")
     compileOnly("org.projectlombok:lombok")
     annotationProcessor("org.projectlombok:lombok")

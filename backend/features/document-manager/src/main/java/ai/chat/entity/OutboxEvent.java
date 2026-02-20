@@ -14,7 +14,8 @@ import java.util.UUID;
 @AllArgsConstructor
 public class OutboxEvent extends AbstractEntity
 {
-    private UUID aggregateId;
+
+    private UUID assetId;
     private String type; // "DOCUMENT_UPLOADED"
     @Column(columnDefinition = "jsonb") // Если PostgreSQL
     private String payload;

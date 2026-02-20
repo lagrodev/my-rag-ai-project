@@ -1,24 +1,3 @@
-"""PDF → Markdown конвертер и очистка (RAG-оптимизированный).
-
-Использует pymupdf4llm с ``page_chunks=True`` — каждая страница
-возвращается отдельным словарём с метаданными (номер страницы),
-что критически важно для source-citations в RAG.
-
-Колонтитулы отсекаются через ``margins`` (верхние/нижние 12 % страницы),
-а не текстовыми регулярками.  Порядок кортежа — PyMuPDF-геометрия:
-``(left, top, right, bottom)``.
-
-Оглавление НЕ удаляется: для RAG оно содержит ключевые слова
-и помогает ретриверу понять структуру документа.
-
-Алгоритм очистки каждой страницы:
-1. Замена Unicode-артефактов (NBSP, zero-width space и пр.).
-2. Удаление одиночных номеров страниц (только чистые «-3-», « 12 »,
-   НЕ годы 1900–2099).
-3. Удаление горизонтальных разделителей (---/===/___ и т.п.).
-4. Схлопывание множественных пустых строк до одной.
-"""
-
 from __future__ import annotations
 
 import re
@@ -30,10 +9,6 @@ import structlog
 
 logger = structlog.get_logger()
 
-# ── Паттерны ─────────────────────────────────────────────────────
-
-# Номер страницы: одиночное число 1–9999, возможно обрамлённое тире.
-# Negative lookahead исключает годы 1900–2099.
 _RE_PAGE_NUMBER = re.compile(
     r"^\s*[-—–]?\s*(?!(?:19|20)\d{2}\s*$)\d{1,4}\s*[-—–]?\s*$",
     re.MULTILINE,
@@ -47,13 +22,9 @@ _RE_UNICODE_JUNK = re.compile(
     r"[\u00a0\u200b\u200c\u200d\ufeff\u2028\u2029]"
 )
 
-# Доля высоты страницы, отсекаемая сверху и снизу (колонтитулы)
-_MARGIN_RATIO = 0.12
 
 
 class PageChunk:
-    """Результат обработки одной страницы PDF."""
-
     __slots__ = ("page", "text")
 
     def __init__(self, page: int, text: str) -> None:
@@ -65,20 +36,12 @@ class PageChunk:
 
 
 class PDFProcessor:
-    """Конвертирует PDF в список очищенных Markdown-чанков по страницам."""
-
+    # todo - тут можно сделать событие в кафку, аля, файл обрабатывается
     def convert_to_markdown(self, pdf_path: str) -> list[dict[str, Any]]:
         """PDF → список ``{"page": N, "text": "..."}`` по страницам.
 
-        Документ открывается через ``fitz.open()`` один раз и передаётся
-        в ``pymupdf4llm.to_markdown()`` как готовый объект, чтобы
-        избежать тройного чтения файла с диска.
-
         Returns:
             Список словарей с ключами ``page`` (int) и ``text`` (str).
-
-        Raises:
-            RuntimeError: если pymupdf4llm / PyMuPDF не смог прочитать файл.
         """
         doc: fitz.Document | None = None
         try:
@@ -87,13 +50,15 @@ class PDFProcessor:
             # ── Открываем PDF один раз ────────────────────────────
             doc = fitz.open(pdf_path)
 
-            # ── Вычисляем margins в pt ────────────────────────────
-            first_page = doc[0]
-            margin_top = first_page.rect.height * _MARGIN_RATIO
-            margin_bottom = first_page.rect.height * _MARGIN_RATIO
+            # ── Динамически вычисляем отступы (margins) ───────────
+            margin_top, margin_bottom = self._calculate_dynamic_margins(doc)
+            logger.info(
+                "pdf_margins_calculated",
+                margin_top=round(margin_top, 2),
+                margin_bottom=round(margin_bottom, 2)
+            )
 
             # ── Конвертация с page_chunks=True ────────────────────
-            # Передаём fitz.Document напрямую — без повторного чтения файла.
             # Порядок margins — PyMuPDF-геометрия: (left, top, right, bottom).
             raw_chunks: list[dict] = pymupdf4llm.to_markdown(
                 doc,
@@ -129,16 +94,49 @@ class PDFProcessor:
             if doc is not None:
                 doc.close()
 
+
+    @staticmethod
+    def _calculate_dynamic_margins(doc: fitz.Document, sample_size: int = 5) -> tuple[float, float]:
+
+        if doc.page_count < 2:
+            return 0.0, 0.0
+
+        pages_to_check = min(doc.page_count, sample_size)
+        page_height = doc[0].rect.height
+
+        top_zone = page_height * 0.15
+        bottom_zone = page_height * 0.85
+
+        max_header_y = 0.0
+        min_footer_y = page_height
+
+        for i in range(pages_to_check):
+            blocks = doc[i].get_text("blocks")
+            for b in blocks:
+                if b[6] != 0:
+                    continue
+
+                text = b[4].strip()
+                if not text:
+                    continue
+
+                y0, y1 = b[1], b[3]
+
+                if y1 < top_zone and (len(text) < 60 or text.isdigit()):
+                    max_header_y = max(max_header_y, y1)
+
+                if y0 > bottom_zone and (len(text) < 60 or text.isdigit()):
+                    min_footer_y = min(min_footer_y, y0)
+
+        margin_top = (max_header_y + 5) if max_header_y > 0 else 0.0
+        margin_bottom = (page_height - min_footer_y + 5) if min_footer_y < page_height else 0.0
+
+        return margin_top, margin_bottom
+
     # ── Очистка одной страницы ────────────────────────────────────
 
     @staticmethod
     def _clean_page(text: str) -> str:
-        """Безопасная очистка Markdown одной страницы.
-
-        Не трогает таблицы и блоки кода — работает только
-        с заведомо мусорными паттернами.
-        """
-
         # 1. Unicode-артефакты → пробел
         text = _RE_UNICODE_JUNK.sub(" ", text)
 

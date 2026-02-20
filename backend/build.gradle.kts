@@ -20,7 +20,7 @@ subprojects {
 
     configure<DependencyManagementExtension> {
         imports {
-            mavenBom("org.springframework.boot:spring-boot-dependencies:4.1.0-M1") // Твоя версия
+            mavenBom("org.springframework.boot:spring-boot-dependencies:4.0.1")
         }
     }
 

@@ -1,3 +1,6 @@
+name:
+  rag-infrastructure
+
 services:
   postgres:
     image: pgvector/pgvector:pg16
@@ -115,7 +118,7 @@ services:
 
   doc-parser:
     build:
-      context: ../backend/doc-parser-python
+      context: doc-parser-python
       dockerfile: Dockerfile
     container_name: rag-doc-parser
     restart: unless-stopped
