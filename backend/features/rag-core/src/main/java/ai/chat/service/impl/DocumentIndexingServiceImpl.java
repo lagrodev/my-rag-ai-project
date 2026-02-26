@@ -72,11 +72,17 @@ public class DocumentIndexingServiceImpl implements DocumentIndexingService
 
         List<List<Double>> embeddingsBatch = embeddingClient.generateEmbeddingsBatch(allTexts);
 
-
         for (int i = 0; i < embeddingsBatch.size(); i++) {
-            allChunks.get(i).setEmbedding(embeddingsBatch.get(i));
-        }
+            List<Double> sourceEmbedding = embeddingsBatch.get(i);
+            float[] floatEmbedding = new float[sourceEmbedding.size()];
+            int j = 0;
 
+            for (Double d : sourceEmbedding) {
+                floatEmbedding[j++] = d.floatValue();
+            }
+
+            allChunks.get(i).setEmbedding(floatEmbedding);
+        }
 
         return chunkRepository.saveAll(allChunks);
     }
@@ -89,7 +95,7 @@ public class DocumentIndexingServiceImpl implements DocumentIndexingService
                     var vector = embeddingClient.generateEmbedding(textPart);
                     return Chunk.builder()
                             .content(textPart)
-                            .embedding(vector)
+//                            .embedding(vector)
                             .build();
                 }).toList();
         chunkRepository.saveAll(chunks);

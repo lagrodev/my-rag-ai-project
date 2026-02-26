@@ -4,6 +4,8 @@ package ai.chat.entity;
 import ai.chat.config.VectorConverter;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 
 import java.util.List;
@@ -26,9 +28,10 @@ public class Chunk extends AbstractEntity {
 
 
     // todo - ссылка на parent_section_id, чтобы в llm улетел весь раздел целиком
-    @Convert(converter = VectorConverter.class) // Подключаем конвертер
-    @Column(columnDefinition = "vector(1536)")
-    private List<Double> embedding;
+//    @Convert(converter = VectorConverter.class) // Подключаем конвертер
+    @JdbcTypeCode(SqlTypes.VECTOR)
+    @Column
+    private float[] embedding;
 
 
     @ManyToOne(fetch =  FetchType.LAZY)

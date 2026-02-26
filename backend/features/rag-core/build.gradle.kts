@@ -18,6 +18,7 @@ dependencies{
     api("jakarta.persistence:jakarta.persistence-api")
     api("org.springframework.data:spring-data-jpa")
     implementation("org.hibernate.orm:hibernate-core")
+    implementation("org.hibernate.orm:hibernate-vector")
     implementation("org.springframework.boot:spring-boot-starter-kafka")
 
     implementation("org.apache.tika:tika-core:3.2.3")
@@ -28,6 +29,7 @@ dependencies{
 
     // jakson
     implementation("com.fasterxml.jackson.core:jackson-databind:2.0.1")
+    implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.21.0") // для чтения времени -_-
 
     compileOnly("org.projectlombok:lombok")
     annotationProcessor("org.projectlombok:lombok")

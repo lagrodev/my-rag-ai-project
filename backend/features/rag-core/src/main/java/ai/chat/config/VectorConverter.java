@@ -6,7 +6,7 @@ import jakarta.persistence.Converter;
 import java.util.Arrays;
 import java.util.List;
 
-@Converter
+//@Converter
 public class VectorConverter implements AttributeConverter<List<Double>, String> {
 
     @Override
