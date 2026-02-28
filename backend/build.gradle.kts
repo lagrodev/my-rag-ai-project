@@ -1,35 +1,48 @@
 import io.spring.gradle.dependencymanagement.dsl.DependencyManagementExtension
 
 plugins {
-    id("java-base")
-    id("io.spring.dependency-management") version "1.1.7" apply false
-    id("org.springframework.boot") version "4.0.1" apply false
-}
-
-allprojects {
-    group = "ai.chat"
-    version = "0.0.1-SNAPSHOT"
-
-    repositories {
-        mavenCentral()
-    }
+    java
+    idea
+    alias(libs.plugins.springBoot) apply false
+    alias(libs.plugins.dependencyManagement) apply false
 }
 
 subprojects {
+    apply(plugin = "java")
     apply(plugin = "io.spring.dependency-management")
+    apply(plugin = "idea")
 
-    configure<DependencyManagementExtension> {
+    the<DependencyManagementExtension>().apply {
         imports {
-            mavenBom("org.springframework.boot:spring-boot-dependencies:4.0.1")
+            mavenBom(org.springframework.boot.gradle.plugin.SpringBootPlugin.BOM_COORDINATES)
+        }
+    }
+    java {
+        toolchain {
+            languageVersion = JavaLanguageVersion.of(rootProject.libs.versions.java.get())
         }
     }
 
-    tasks.withType<JavaCompile> {
-        options.encoding = "UTF-8"
-        sourceCompatibility = "21" // Или 21
-        targetCompatibility = "21"
+    configurations {
+        compileOnly {
+            extendsFrom(configurations.annotationProcessor.get())
+        }
     }
 
+    dependencies {
+        // Annotation Processors
+        compileOnly(rootProject.libs.lombok)
+        annotationProcessor(rootProject.libs.lombok)
+    }
+
+    tasks.withType<Test> {
+        useJUnitPlatform()
+    }
+
+    group = "ai.chat.backend"
+    version = "0.0.1-SNAPSHOT"
 }
 
-
+tasks.test {
+    useJUnitPlatform()
+}

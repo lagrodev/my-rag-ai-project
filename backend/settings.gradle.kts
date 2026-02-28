@@ -1,9 +1,27 @@
-rootProject.name = "rag-backend"
+rootProject.name = "backend"
 
-include("app")
 
-include("common:api-contracts")
-include("common:core-utils")
 
-include("features:rag-core")
-include("features:document-manager")
+pluginManagement {
+    repositories {
+        gradlePluginPortal()
+        mavenCentral()
+        maven("https://packages.confluent.io/maven/")
+    }
+}
+dependencyResolutionManagement {
+    repositories {
+        mavenCentral()
+        maven("https://packages.confluent.io/maven/")
+    }
+}
+
+include("core")
+include("core:logging-common")
+include("core:rag-service")
+include("core:rag-service:app")
+include("core:rag-service:common:api-contracts")
+include("core:rag-service:common:core-utils")
+include("core:rag-service:features:rag-core")
+include("core:rag-service:features:document-manager")
+
