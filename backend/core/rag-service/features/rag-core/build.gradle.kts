@@ -9,6 +9,7 @@ dependencies {
 
     implementation(libs.hypersistence.utils)
     implementation(project(":core:rag-service:common:core-utils"))
+    implementation(project(":core:logging-common"))
     api(libs.jakarta.persistence.api)
     api(libs.spring.data.jpa)
     implementation(libs.hibernate.core)
@@ -24,7 +25,7 @@ dependencies {
 
     // redis
     implementation(libs.spring.boot.starter.data.redis)
-
+    compileOnly(libs.jedis)
     // jackson
     implementation(libs.jackson.databind)
     implementation(libs.jackson.datatype.jsr310)

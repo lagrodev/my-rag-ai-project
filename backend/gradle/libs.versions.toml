@@ -8,6 +8,7 @@ loki4j = "2.0.3"
 mapstruct = "1.6.3"
 bouncycastle = "1.83"
 logstash-logback = "9.0"
+spring-kafka = "4.0.0"
 avro = "1.12.1"
 protobuf = "4.33.5"
 confluent = "8.1.1"
@@ -73,12 +74,13 @@ postgresql = { group = "org.postgresql", name = "postgresql" }
 spring-boot-starter-data-jpa = { group = "org.springframework.boot", name = "spring-boot-starter-data-jpa" }
 spring-security-test = { group = "org.springframework.security", name = "spring-security-test" }
 spring-boot-starter-data-redis = { group = "org.springframework.boot", name = "spring-boot-starter-data-redis" }
+jedis = { group = "redis.clients", name = "jedis" }
 spring-boot-starter-oauth2-resource-server = { group = "org.springframework.boot", name = "spring-boot-starter-oauth2-resource-server" }
 
 logstash-logback-encoder = { group = "net.logstash.logback", name = "logstash-logback-encoder", version.ref = "logstash-logback" }
 
 # Kafka
-spring-kafka = { group = "org.springframework.kafka", name = "spring-kafka" }
+spring-kafka = { group = "org.springframework.kafka", name = "spring-kafka", version.ref = "spring-kafka" }
 
 # Avro
 avro = { group = "org.apache.avro", name = "avro", version.ref = "avro" }

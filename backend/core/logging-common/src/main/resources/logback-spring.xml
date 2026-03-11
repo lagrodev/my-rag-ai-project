@@ -7,7 +7,7 @@
          Use %maskedMsg instead of %msg wherever sensitive data may appear.
          ───────────────────────────────────────────────────────────────────── -->
     <conversionRule conversionWord="maskedMsg"
-                    converterClass="ai.chat.backend.logging_common.converter.SensitiveMaskingConverter"/>
+                    class="ai.chat.backend.logging_common.converter.SensitiveMaskingConverter"/>
 
     <!-- ── Spring Boot / OTel properties ──────────────────────────────────── -->
     <springProperty name="SERVICE_NAME" scope="context"
@@ -84,4 +84,10 @@
             <appender-ref ref="ASYNC_JSON"/>
         </root>
     </springProfile>
+
+
+    <root level="INFO">
+        <appender-ref ref="CONSOLE_TEXT"/>
+    </root>
+
 </configuration>

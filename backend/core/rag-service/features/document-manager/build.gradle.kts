@@ -17,6 +17,8 @@ dependencies {
     implementation(libs.spring.kafka)
 
     implementation(project(":core:rag-service:common:core-utils"))
+    implementation(project(":core:logging-common"))
+    
 
     implementation(libs.spring.boot.starter.webmvc)
     implementation(libs.spring.boot.starter.actuator)

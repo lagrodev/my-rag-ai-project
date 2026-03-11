@@ -19,7 +19,7 @@ import java.util.UUID;
  *   rag.conversation.max-history-messages  (default: 10)
  *   rag.conversation.max-history-tokens    (default: 3000)
  *
- * Для production используйте Redis для хранения между запросами.
+ * todo Для production использование Redis, для хранения между запросами.
  */
 @Getter
 public class ConversationContext {
@@ -76,13 +76,6 @@ public class ConversationContext {
 
     /**
      * Форматирует историю диалога для вставки в промпт LLM.
-     *
-     * Пример:
-     * <pre>
-     * ИСТОРИЯ ДИАЛОГА:
-     * Пользователь: Что такое форс-мажор?
-     * Ассистент: Форс-мажор — это...
-     * </pre>
      */
     public String formatHistoryForPrompt() {
         List<Message> messages = getHistoryForPrompt();

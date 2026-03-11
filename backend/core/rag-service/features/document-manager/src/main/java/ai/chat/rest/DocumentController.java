@@ -21,7 +21,7 @@ import java.util.UUID;
 
 @RequiredArgsConstructor
 @RestController
-@Loggable(level = Loggable.LogLevel.INFO, slowThresholdMs = 300)
+@Loggable(level = Loggable.LogLevel.DEBUG, slowThresholdMs = 300)
 @RequestMapping("/api/documents")
 public class DocumentController {
     private final DocumentService documentService;

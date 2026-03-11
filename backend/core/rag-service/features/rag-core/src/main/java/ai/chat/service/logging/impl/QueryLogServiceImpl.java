@@ -111,8 +111,6 @@ public class QueryLogServiceImpl implements QueryLogService {
         } catch (JsonProcessingException e) {
             log.warn("Не удалось сериализовать sources в JSON: {}", e.getMessage());
             return "[]";
-        } catch (IOException e) {
-            throw new RuntimeException(e);
         }
     }
 }

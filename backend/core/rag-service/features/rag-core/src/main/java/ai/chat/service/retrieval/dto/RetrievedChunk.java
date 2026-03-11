@@ -17,7 +17,8 @@ public record RetrievedChunk(
         UUID sectionId,
         String headingTitle,
         String contextText,
-        Double similarityScore, Integer pageNumber
+        Double similarityScore,
+        Integer pageNumber
 
 ) {
 

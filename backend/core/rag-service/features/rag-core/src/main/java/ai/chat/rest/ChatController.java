@@ -1,5 +1,6 @@
 package ai.chat.rest;
 
+import ai.chat.backend.logging_common.aspect.Loggable;
 import ai.chat.rest.dto.ChatRequest;
 import ai.chat.rest.dto.ChatResponse;
 import ai.chat.service.ChatSessionService;
@@ -15,6 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 @RestController
 @RequestMapping("/api/chat")
+@Loggable(level = Loggable.LogLevel.DEBUG, slowThresholdMs = 300)
 public class ChatController {
     private final ChatSessionService chatSessionService;
     private final RagService ragService;
