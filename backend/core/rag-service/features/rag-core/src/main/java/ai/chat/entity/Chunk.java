@@ -1,15 +1,10 @@
 package ai.chat.entity;
 
 
-import ai.chat.config.VectorConverter;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
-
-
-import java.util.List;
-import java.util.UUID;
 
 @Entity
 @Table(name = "document_chunks", schema = "content")
@@ -28,17 +23,15 @@ public class Chunk extends AbstractEntity {
 
 
     // todo - ссылка на parent_section_id, чтобы в llm улетел весь раздел целиком
-//    @Convert(converter = VectorConverter.class) // Подключаем конвертер
+
     @JdbcTypeCode(SqlTypes.VECTOR)
     @Column
     private float[] embedding;
 
 
-    @ManyToOne(fetch =  FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "document_section_id")
     private DocumentSection documentSection;
-
-
 
 
 }

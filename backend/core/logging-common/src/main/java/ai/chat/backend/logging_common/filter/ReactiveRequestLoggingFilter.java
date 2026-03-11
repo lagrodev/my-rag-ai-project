@@ -15,23 +15,14 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-/**
- * Reactive {@link WebFilter} that logs every HTTP request and response for WebFlux applications.
- *
- * <ul>
- *   <li>Logs method, URI, query string, response status, and duration on every request.</li>
- *   <li>Logs request headers at DEBUG level, masking {@link #SENSITIVE_HEADERS}.</li>
- *   <li>Promotes the log record to WARN when the request exceeds {@code slowThresholdMs}.</li>
- *   <li>Increments {@code logging.slow_requests.total} Micrometer counter for slow requests.</li>
- * </ul>
- */
+
 @Slf4j
 @Order(Ordered.HIGHEST_PRECEDENCE + 10)
 public class ReactiveRequestLoggingFilter implements WebFilter {
 
     static final String SLOW_METRIC = "logging.slow_requests.total";
 
-    /** Header names (lower-cased) whose values are replaced with {@code ****} in logs. */
+
     private static final Set<String> SENSITIVE_HEADERS = Set.of(
             "authorization", "cookie", "set-cookie", "proxy-authorization"
     );

@@ -86,7 +86,7 @@ public class DocumentSectionParserServiceImpl implements DocumentSectionParserSe
                 .build();
     }
 
-    // todo - да
+
     private void iterDfs(
             TreeNode node,
             String parentPath,

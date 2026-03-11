@@ -18,26 +18,13 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 
-/**
- * Servlet filter that logs every HTTP request and response as a structured log entry.
- *
- * <ul>
- *   <li>Logs method, URI, query string, response status, and duration on every request.</li>
- *   <li>Logs request headers at DEBUG level, masking {@link #SENSITIVE_HEADERS}.</li>
- *   <li>Logs the request body (up to {@code maxBodyLogSize} bytes) for non-GET requests.</li>
- *   <li>Promotes the log record to WARN when the request exceeds {@code slowThresholdMs}.</li>
- *   <li>Increments {@code logging.slow_requests.total} Micrometer counter for slow requests.</li>
- * </ul>
- *
- * <p>Uses {@link ContentCachingRequestWrapper} / {@link ContentCachingResponseWrapper} so that
- * the body can be read for logging without consuming the stream for the actual handler.
- */
+
 @Slf4j
 public class RequestLoggingFilter extends OncePerRequestFilter {
 
     static final String SLOW_METRIC = "logging.slow_requests.total";
 
-    /** Header names (lower-cased) whose values are replaced with {@code ****} in logs. */
+
     private static final Set<String> SENSITIVE_HEADERS = Set.of(
             "authorization", "cookie", "set-cookie", "proxy-authorization"
     );
@@ -96,7 +83,7 @@ public class RequestLoggingFilter extends OncePerRequestFilter {
                 }
             }
 
-            // Copy the cached response body back to the real response stream
+
             wrappedResp.copyBodyToResponse();
         }
     }

@@ -17,7 +17,7 @@ public class Document extends AbstractEntity {
     @Column(nullable = false)
     private String filename; // как пользователь назвал файл
 
-    // Кто загрузил (пока просто ID, связей @ManyToOne нет, т.к. юзеры в Keycloak)
+    // Кто загрузил (пока просто ID юзера, в будущем можно связать с таблицей юзеров)
     @Column(name = "uploaded_by")
     private UUID uploadedBy;
 

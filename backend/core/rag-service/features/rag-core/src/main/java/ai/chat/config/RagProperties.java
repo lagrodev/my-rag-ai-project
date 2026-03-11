@@ -6,22 +6,7 @@ import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
-/**
- * Настройки RAG пайплайна — все пороги и дефолты вынесены в application.yml.
- * Пример конфигурации:
- * <pre>
- * rag:
- *   retrieval:
- *     default-top-k: 5
- *     similarity-threshold: 0.7
- *     max-section-length-for-full-context: 2000
- *   llm:
- *     max-context-length: 8000
- *   conversation:
- *     max-history-messages: 10
- *     max-history-tokens: 3000
- * </pre>
- */
+
 @Getter
 @Setter
 @Component

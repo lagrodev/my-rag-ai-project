@@ -12,20 +12,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 import java.util.UUID;
 
-/**
- * Servlet filter that enriches the MDC context for every incoming HTTP request.
- *
- * <p>Sets the following MDC keys:
- * <ul>
- *   <li>{@code requestId} – taken from the {@code X-Request-ID} header, or generated as UUID</li>
- *   <li>{@code userId}    – principal name from Spring Security context (if authenticated)</li>
- * </ul>
- *
- * <p>The {@code X-Request-ID} is also echoed back in the response header so clients
- * can correlate their requests with server-side logs.
- *
- * <p>MDC is always cleared after the request completes to avoid context leaks in thread pools.
- */
+
 public class MdcContextFilter extends OncePerRequestFilter {
 
     public static final String REQUEST_ID_HEADER = "X-Request-ID";

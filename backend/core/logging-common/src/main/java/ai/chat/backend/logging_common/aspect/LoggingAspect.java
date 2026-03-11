@@ -10,18 +10,7 @@ import org.springframework.lang.Nullable;
 
 import java.util.Arrays;
 
-/**
- * AOP aspect backing the {@link Loggable} annotation.
- *
- * <p>Registered automatically by {@code LoggingAutoConfiguration}.
- * Can be disabled per-service with {@code app.logging.loggable-aspect=false}.
- *
- * <p>Supports both method-level and class-level {@code @Loggable}.
- * Method-level always takes precedence over class-level for attribute resolution.
- *
- * <p>When a {@link MeterRegistry} is present in the context, increments the
- * {@code logging.slow_requests.total} counter for every slow method call.
- */
+
 @Slf4j
 @Aspect
 public class LoggingAspect {
@@ -35,28 +24,25 @@ public class LoggingAspect {
         this.meterRegistry = meterRegistry;
     }
 
-    /**
-     * Intercepts methods annotated directly with {@code @Loggable} OR methods
-     * whose declaring class is annotated with {@code @Loggable}.
-     */
+
     @Around("@within(ai.chat.backend.logging_common.aspect.Loggable) "
           + "|| @annotation(ai.chat.backend.logging_common.aspect.Loggable)")
     public Object logExecution(ProceedingJoinPoint pjp) throws Throwable {
         MethodSignature sig = (MethodSignature) pjp.getSignature();
 
-        // Method-level annotation takes precedence; fall back to class-level
+
         Loggable loggable = sig.getMethod().getAnnotation(Loggable.class);
         if (loggable == null) {
             loggable = (Loggable) sig.getDeclaringType().getAnnotation(Loggable.class);
         }
         if (loggable == null) {
-            // shouldn't happen given the pointcut, but guard against it
+
             return pjp.proceed();
         }
 
         String method = sig.getDeclaringType().getSimpleName() + "#" + sig.getName();
 
-        // ── Entry log ────────────────────────────────────────────────────────────
+
         if (loggable.logArgs()) {
             logAt(loggable.level(), ">> {} args={}", method, Arrays.toString(pjp.getArgs()));
         } else {
@@ -68,7 +54,7 @@ public class LoggingAspect {
             Object result  = pjp.proceed();
             long   elapsed = System.currentTimeMillis() - start;
 
-            // ── Exit log ──────────────────────────────────────────────────────────
+
             if (elapsed > loggable.slowThresholdMs()) {
                 log.warn("<< {} finished in {}ms [SLOW – threshold={}ms]",
                         method, elapsed, loggable.slowThresholdMs());
@@ -89,9 +75,6 @@ public class LoggingAspect {
         }
     }
 
-    // ─────────────────────────────────────────────────────────────────────────────
-    // Helpers
-    // ─────────────────────────────────────────────────────────────────────────────
 
     private void logAt(Loggable.LogLevel level, String format, Object... args) {
         switch (level) {

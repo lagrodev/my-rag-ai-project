@@ -12,21 +12,7 @@ import reactor.util.context.Context;
 
 import java.util.UUID;
 
-/**
- * Reactive {@link WebFilter} that propagates MDC context for every incoming request.
- *
- * <p>Sets the following keys in the Reactor {@link Context} (accessible to subscribers)
- * and in SLF4J MDC (for synchronous log calls made in the same thread):
- * <ul>
- *   <li>{@code requestId} – taken from the {@code X-Request-ID} header, or generated as UUID</li>
- * </ul>
- *
- * <p>The {@code X-Request-ID} is echoed back in the response header so clients
- * can correlate their requests with server-side logs.
- *
- * <p>Note: for full MDC propagation across reactive thread hops, configure Reactor's
- * context-propagation support ({@code reactor.core.publisher.Hooks.enableAutomaticContextPropagation()}).
- */
+
 @Slf4j
 @Order(Ordered.HIGHEST_PRECEDENCE)
 public class ReactiveMdcContextFilter implements WebFilter {
