@@ -1,8 +1,9 @@
-package ai.chat.listeners;
+package ai.chat.kafka;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.kafka.support.SendResult;
 import org.springframework.stereotype.Component;
 
 import java.util.concurrent.CompletableFuture;
@@ -15,10 +16,10 @@ public class KafkaSender {
     // Используем Object, так как Spring Kafka сама сериализует объекты в JSON
     private final KafkaTemplate<String, Object> kafkaTemplate;
 
-    public void send(String topic, String key, Object payload) {
+    public CompletableFuture<SendResult<String, Object>> send(String topic, String key, Object payload) {
         log.trace("Отправка в топик={} key={} payload={}", topic, key, payload.getClass().getSimpleName());
 
-        kafkaTemplate.send(topic, key, payload).whenComplete((result, ex) -> {
+        return kafkaTemplate.send(topic, key, payload).whenComplete((result, ex) -> {
             if (ex != null) {
                 log.error("Ошибка отправки в Кафку: topic={} key={}: {}", topic, key, ex.getMessage(), ex);
             } else {

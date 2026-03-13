@@ -3,11 +3,8 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/core/logging-common/backend.core.logging-common.main.iml" filepath="$PROJECT_DIR$/.idea/modules/core/logging-common/backend.core.logging-common.main.iml" />
-      <module fileurl="file://$PROJECT_DIR$/.idea/modules/core/rag-service/app/backend.core.rag-service.app.main.iml" filepath="$PROJECT_DIR$/.idea/modules/core/rag-service/app/backend.core.rag-service.app.main.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/core/rag-service/common/core-utils/backend.core.rag-service.common.core-utils.main.iml" filepath="$PROJECT_DIR$/.idea/modules/core/rag-service/common/core-utils/backend.core.rag-service.common.core-utils.main.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/core/rag-service/features/document-manager/backend.core.rag-service.features.document-manager.main.iml" filepath="$PROJECT_DIR$/.idea/modules/core/rag-service/features/document-manager/backend.core.rag-service.features.document-manager.main.iml" />
-      <module fileurl="file://$PROJECT_DIR$/.idea/modules/core/rag-service/features/rag-core/backend.core.rag-service.features.rag-core.main.iml" filepath="$PROJECT_DIR$/.idea/modules/core/rag-service/features/rag-core/backend.core.rag-service.features.rag-core.main.iml" />
-      <module fileurl="file://$PROJECT_DIR$/.idea/modules/app/my-rag-ai-project.app.main.iml" filepath="$PROJECT_DIR$/.idea/modules/app/my-rag-ai-project.app.main.iml" />
     </modules>
   </component>
 </project>

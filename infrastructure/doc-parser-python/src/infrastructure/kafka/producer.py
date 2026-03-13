@@ -1,9 +1,5 @@
-"""Kafka producer на базе aiokafka.
-
-Отправляет JSON-события об успешной обработке PDF-документов.
-"""
-
 import json
+from datetime import datetime, timezone
 
 import structlog
 from aiokafka import AIOKafkaProducer
@@ -49,4 +45,29 @@ class KafkaEventProducer:
             "kafka_event_sent",
             topic=settings.kafka_output_topic,
             document_id=event.document_id,
+        )
+
+    async def send_status(self, document_id: str, status: str, message: str) -> None:
+        if not self._producer:
+            raise RuntimeError("Producer not started — call start() first")
+
+        payload = {
+            "document_id": document_id,
+            "status": status,
+            "message": message,
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        }
+        
+        topic = getattr(settings, "kafka_status_topic", "document-status-updates")
+
+        await self._producer.send_and_wait(
+            topic,
+            key=document_id.encode("utf-8"),
+            value=payload,
+        )
+        logger.info(
+            "kafka_status_sent",
+            topic=topic,
+            document_id=document_id,
+            status=status,
         )

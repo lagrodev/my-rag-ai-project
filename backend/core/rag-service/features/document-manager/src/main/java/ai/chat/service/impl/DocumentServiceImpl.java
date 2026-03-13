@@ -4,6 +4,7 @@ import ai.chat.config.MinioProperties;
 import ai.chat.entity.Document;
 import ai.chat.entity.FileAsset;
 import ai.chat.exceptions.custom.DocumentNotFoundException;
+import ai.chat.exceptions.custom.NotFoundException;
 import ai.chat.mapper.DocumentMapper;
 import ai.chat.repository.DocumentRepository;
 import ai.chat.repository.FileAssetRepository;
@@ -121,6 +122,14 @@ public class DocumentServiceImpl implements DocumentService
     {
         var doc = getMyDocument(id, userId);
         return documentMapper.toDto(doc);
+    }
+
+    @Override
+    public FileAsset getAssetIdOrThrow(UUID documentId, UUID userId)
+    {
+
+        return documentRepository.findAssetIdByDocumentIdAndUserId(documentId, userId)
+                .orElseThrow(() -> new NotFoundException("Document not found"));
     }
 
     @Override

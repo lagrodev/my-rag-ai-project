@@ -14,7 +14,7 @@ def get_base64_md5(file_path: str) -> str:
     base64_encoded = base64.b64encode(md5_hash.digest()).decode('utf-8')
     return base64_encoded
 
-
+    
 # Подставь путь к своему PDF
 file_name = "/home/hexaend/Загрузки/FULL.pdf"
 result = get_base64_md5(file_name)

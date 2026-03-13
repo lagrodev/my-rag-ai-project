@@ -1,6 +1,7 @@
 package ai.chat.repository;
 
 import ai.chat.entity.Document;
+import ai.chat.entity.FileAsset;
 import org.jspecify.annotations.NonNull;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -28,4 +29,12 @@ public interface DocumentRepository extends JpaRepository<@NonNull Document, @No
         """
     )
     Optional<Document> findByIdAndUserIdWithAsset(UUID id, UUID uploadedBy);
+
+    @Query(
+            """
+SELECT d.fileAsset from Document d
+WHERE d.id = :documentId and d.uploadedBy = :userId
+"""
+    )
+    Optional<FileAsset> findAssetIdByDocumentIdAndUserId(UUID documentId, UUID userId);
 }

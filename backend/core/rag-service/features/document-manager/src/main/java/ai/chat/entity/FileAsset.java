@@ -13,7 +13,8 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @Builder
 // реальный документ
-public class FileAsset extends AbstractEntity {
+public class FileAsset extends AbstractEntity
+{
     @Column(name = "hash", unique = true, nullable = false, updatable = false)
     private String hash; // Уникальный SHA-256
 
@@ -35,17 +36,24 @@ public class FileAsset extends AbstractEntity {
     @Builder.Default
     private boolean isParsed = false;
 
-    /** Текущий статус обработки документа в RAG пайплайне */
+    /**
+     * Текущий статус обработки документа в RAG пайплайне
+     */
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
     @Builder.Default
     private DocumentStatus status = DocumentStatus.UPLOADED;
 
+    @Column(name = "state_message")
+    private String stateMessage;
+
     /** Причина ошибки, если status = FAILED */
     @Column(name = "failure_reason", columnDefinition = "text")
     private String failureReason;
 
-    /** Время завершения обработки (READY или FAILED) */
+    /**
+     * Время завершения обработки (READY или FAILED)
+     */
     @Column(name = "processed_at")
     private LocalDateTime processedAt;
 }

@@ -21,7 +21,7 @@ public class OutboxEvent extends AbstractEntity
     private String payload;
 
     @Enumerated(EnumType.STRING)
-    private State state;
+    private State state = State.PENDING;
     // Статус: PENDING, PROCESSED, FAILED
 
     public enum State

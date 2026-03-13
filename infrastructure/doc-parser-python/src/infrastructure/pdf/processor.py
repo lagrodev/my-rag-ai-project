@@ -36,7 +36,6 @@ class PageChunk:
 
 
 class PDFProcessor:
-    # todo - тут можно сделать событие в кафку, аля, файл обрабатывается
     def convert_to_markdown(self, pdf_path: str) -> list[dict[str, Any]]:
         """PDF → список ``{"page": N, "text": "..."}`` по страницам.
 
@@ -89,6 +88,7 @@ class PDFProcessor:
             )
             raise RuntimeError(
                 f"Не удалось сконвертировать PDF: {exc}"
+
             ) from exc
         finally:
             if doc is not None:

@@ -1,5 +1,6 @@
 package ai.chat.service;
 
+import ai.chat.entity.FileAsset;
 import ai.chat.rest.dto.ConfirmUploadRequest;
 import ai.chat.rest.dto.DocumentDto;
 import ai.chat.rest.dto.InitUploadRequest;
@@ -24,6 +25,7 @@ public interface DocumentService {
 
     DocumentDto getDocumentMetadata(UUID id, UUID userId);
 
+    FileAsset getAssetIdOrThrow(UUID documentId, UUID userId);
 
     String getDocumentDownloadUrl(UUID id, UUID userId);
 

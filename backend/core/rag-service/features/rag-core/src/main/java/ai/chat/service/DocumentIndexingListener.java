@@ -24,14 +24,17 @@ public class DocumentIndexingListener {
     private final DocumentIndexingService documentIndexingService;
 
     private final ObjectMapper objectMapper;
+    private final DocumentStatusPort port;
 
 
     private final DocumentSectionParserService documentSectionParserService;
 
     @Transactional
     public void handleSuccessfulProcessing(UUID documentId, String resultBucket, String resultFile) {
+        port.updateStatus(documentId, "INDEXING", "Indexing...");
         try (InputStream fileStream = minIoService.getFile(resultBucket, resultFile)) {
             Tree parsedDocument = objectMapper.readValue(fileStream, Tree.class);
+            port.updateStatus(documentId, "PARSING", "PARSING...");
             log.info("Успешно распарсили документ ID: {}", parsedDocument.getDocumentId());
 
             log.info("Корневой узел содержит {} потомков", parsedDocument.getRoot().getChildren().size());
@@ -39,18 +42,24 @@ public class DocumentIndexingListener {
 
             List<DocumentSection> sections = documentSectionParserService.parseTreeToSections(parsedDocument, documentId);
             log.info("Распарсили на секции: {}", sections);
+            port.updateStatus(documentId, "PARSED", "parsed success...");
 
             List<Chunk> chunks = documentIndexingService.indexDocumentForSections(sections);
+            port.updateStatus(documentId, "READY", "doc ready to work...");
+
             log.info("Распарсили на остатки на чанки: {}", chunks);
 
-        } catch (IOException e) {
+        } catch (Exception e) { // ловим все ошибки (чтобы м внутри которые вызовутся рантаймом привели к изменению статуса)
             // catch (Exception e) {
             //    documentService.updateStatus(documentId, DocumentStatus.FAILED, e.getMessage());
             //    log.error("Ошибка обработки документа {}: {}", documentId, e.getMessage(), e);
             //    throw new DocumentProcessingException(documentId, e);
-            //} - можно через апи гатевей??
+            //}
+            log.error(e.getMessage(), e);
+            port.updateStatus(documentId, "FAILED", e.getMessage());
+            throw new RuntimeException(e); // todo кастомную ошибку
 
-            throw new RuntimeException(e);
+
         }
 
 

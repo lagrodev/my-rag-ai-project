@@ -62,9 +62,23 @@ class DocumentProcessingService:
                 "document_already_processed",
                 result=f"minio://{output_object}",
             )
+            await self._producer.send_status(event.id, "MARKDOWN_READY", "Document was already processed")
+            
+            # 👇 Добавлено: отправляем событие в Java, чтобы она могла запустить индексацию!
+            out_event = OutgoingEvent(
+                document_id=event.id,
+                result_bucket=output_bucket,
+                result_file=f"{output_object}",
+                status="processed",
+            )
+            await self._producer.send_event(out_event)
+            # 👆
+            
             return
 
         # ── 2. Скачиваем PDF из MinIO ─────────────────────────────
+        await self._producer.send_status(event.id, "PROCESSING", "Downloading PDF from storage...")
+
         bucket, object_name = self._parse_minio_path(
             event.filePath, event.minIoBucket
         )
@@ -79,19 +93,25 @@ class DocumentProcessingService:
             except S3Error as exc:
                 if exc.code == "NoSuchKey":
                     log.warning("file_missing_in_minio_skipping", object_name=object_name)
+                    await self._producer.send_status(event.id, "FAILED", f"File not found in storage: {exc}")
                     return
                 raise
 
             # ── 3. PDF → очищенный Markdown (по страницам) ────────
+            await self._producer.send_status(event.id, "PROCESSING", "Parsing PDF to Markdown...")
+
             page_chunks = await asyncio.to_thread(
                 self._pdf.convert_to_markdown, local_pdf
             )
+
+            await self._producer.send_status(event.id, "PROCESSING", "The document is parsed in Markdown format and cleaned")
 
             tree_data = await asyncio.to_thread(
                 self._tree_builder.build_tree, page_chunks
             )
 
             # ── 4. Формируем JSON-документ и загружаем в MinIO ────
+            await self._producer.send_status(event.id, "PROCESSING", "Saving results...")
             doc = ProcessedDocument(
                 document_id=event.id,
                 source_file=event.filePath,
@@ -102,7 +122,9 @@ class DocumentProcessingService:
                 output_bucket, output_object, doc.to_storage_dict()
             )
 
+
             # ── 5. Отправляем Kafka-событие ───────────────────────
+            await self._producer.send_status(event.id, "MARKDOWN_READY", "The document has been successfully parsed and saved")
             out_event = OutgoingEvent(
                 document_id=event.id,
                 result_bucket=output_bucket,
@@ -115,6 +137,14 @@ class DocumentProcessingService:
                 "document_processed_ok",
                 result=f"minio://{output_bucket}/{output_object}",
             )
+
+        except Exception as exc:
+            # ── ГЛОБАЛЬНЫЙ ПЕРЕХВАТ ОШИБОК ────────────────────────
+            log.error("document_processing_failed", error=str(exc), exc_info=True)
+            # Отправляем статус FAILED, чтобы Java-бэкенд обновил БД, а SSE закрылся
+            await self._producer.send_status(event.id, "FAILED", f"Internal processing error: {str(exc)}")
+            # Если ты используешь aiokafka/confluent-kafka и управляешь коммитами оффсетов вручную,
+            # тут нужно решить: делать raise или глушить ошибку, чтобы Кафка пометила сообщение как прочитанное.
 
         finally:
             # ── 6. Очистка временных файлов ───────────────────────

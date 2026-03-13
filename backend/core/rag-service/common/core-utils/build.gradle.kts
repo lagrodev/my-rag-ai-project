@@ -14,6 +14,10 @@ dependencies {
     api(libs.spring.data.jpa)
     implementation(libs.hibernate.core)
 
+
+    // kafka
+    implementation(libs.spring.kafka)
+
     compileOnly(libs.lombok)
     annotationProcessor(libs.lombok)
 }
