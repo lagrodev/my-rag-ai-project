@@ -23,7 +23,6 @@ _RE_UNICODE_JUNK = re.compile(
 )
 
 
-
 class PageChunk:
     __slots__ = ("page", "text")
 
@@ -67,12 +66,32 @@ class PDFProcessor:
 
             # ── Очистка каждой страницы ───────────────────────────
             result: list[PageChunk] = []
-            for chunk in raw_chunks:
-                page_num: int = chunk["metadata"]["page"]
+            for idx, chunk in enumerate(raw_chunks):
+                try:
+                    if isinstance(chunk, dict):
+                        # Пробуем структуру как в рабочей версии
+                        metadata = chunk.get("metadata", {})
+                        page_num = metadata.get("page") if isinstance(metadata, dict) else None
 
-                cleaned = self._clean_page(chunk["text"])
-                if cleaned:
-                    result.append(PageChunk(page=page_num, text=cleaned))
+                        # Фоллбэк на прямой ключ (вдруг версия библиотеки другая)
+                        if page_num is None:
+                            page_num = chunk.get("page") or chunk.get("page_no")
+
+                        # Фоллбэк на индекс
+                        if page_num is None:
+                            page_num = idx + 1
+
+                        text = chunk.get("text", "")
+                    else:
+                        text = str(chunk)
+                        page_num = idx + 1
+
+                    cleaned = self._clean_page(text)
+                    if cleaned:
+                        result.append(PageChunk(page=int(page_num), text=cleaned))
+                except Exception as e:
+                    logger.error("chunk_error", idx=idx, error=str(e), chunk=repr(chunk)[:100])
+                    continue
 
             logger.info(
                 "pdf_conversion_ok",
@@ -93,7 +112,6 @@ class PDFProcessor:
         finally:
             if doc is not None:
                 doc.close()
-
 
     @staticmethod
     def _calculate_dynamic_margins(doc: fitz.Document, sample_size: int = 5) -> tuple[float, float]:

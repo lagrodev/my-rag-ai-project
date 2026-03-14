@@ -46,7 +46,7 @@ class MinioStorage:
 
     @retry(**_RETRY_POLICY)
     async def download_file(
-        self, bucket_name: str, object_name: str, file_path: str
+            self, bucket_name: str, object_name: str, file_path: str
     ) -> None:
         """Скачивает объект из MinIO в локальный файл."""
         logger.info(
@@ -64,7 +64,7 @@ class MinioStorage:
 
     @retry(**_RETRY_POLICY)
     async def upload_json(
-        self, bucket_name: str, object_name: str, data: dict
+            self, bucket_name: str, object_name: str, data: dict
     ) -> None:
         """Сериализует dict → JSON и загружает в MinIO.
 
@@ -99,7 +99,7 @@ class MinioStorage:
     # ── Проверка существования (idempotency) ──────────────────────
 
     async def object_exists(
-        self, bucket_name: str, object_name: str
+            self, bucket_name: str, object_name: str
     ) -> bool:
         """Возвращает True, если объект уже есть в MinIO.
 
