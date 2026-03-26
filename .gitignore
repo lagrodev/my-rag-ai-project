@@ -6,3 +6,23 @@ backend/.gradle
 
 backend/python/doc-parser-python/.idea
 backend/python/doc-parser-python/REVIEW.md
+
+# Backend
+backend/.gradle/
+backend/build/
+backend/.idea/
+backend/*/build/
+
+# Java
+backend/java/.gradle/
+backend/java/build/
+backend/java/*/build/
+
+# IDE
+.idea/
+*.iml
+*.iws
+
+# Environment
+.env
+
