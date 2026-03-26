@@ -14,7 +14,7 @@ import org.springframework.transaction.event.TransactionalEventListener;
 import java.time.LocalDateTime;
 import java.util.List;
 
-//@Component
+@Component
 @Slf4j
 @RequiredArgsConstructor
 public class OutboxRelayScheduler {

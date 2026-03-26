@@ -3,6 +3,7 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/core/logging-common/backend.core.logging-common.main.iml" filepath="$PROJECT_DIR$/.idea/modules/core/logging-common/backend.core.logging-common.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/core/rag-service/app/backend.core.rag-service.app.test.iml" filepath="$PROJECT_DIR$/.idea/modules/core/rag-service/app/backend.core.rag-service.app.test.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/core/rag-service/common/core-utils/backend.core.rag-service.common.core-utils.main.iml" filepath="$PROJECT_DIR$/.idea/modules/core/rag-service/common/core-utils/backend.core.rag-service.common.core-utils.main.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/core/rag-service/features/document-manager/backend.core.rag-service.features.document-manager.main.iml" filepath="$PROJECT_DIR$/.idea/modules/core/rag-service/features/document-manager/backend.core.rag-service.features.document-manager.main.iml" />
     </modules>

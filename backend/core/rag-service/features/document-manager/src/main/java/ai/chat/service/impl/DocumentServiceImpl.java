@@ -3,16 +3,21 @@ package ai.chat.service.impl;
 import ai.chat.config.MinioProperties;
 import ai.chat.entity.Document;
 import ai.chat.entity.FileAsset;
+import ai.chat.entity.OutboxEvent;
 import ai.chat.exceptions.custom.DocumentNotFoundException;
 import ai.chat.exceptions.custom.NotFoundException;
 import ai.chat.mapper.DocumentMapper;
 import ai.chat.repository.DocumentRepository;
 import ai.chat.repository.FileAssetRepository;
+import ai.chat.repository.OutboxEventRepository;
 import ai.chat.rest.dto.*;
 import ai.chat.rest.dto.events.DeleteDocumentEvent;
 import ai.chat.service.DocumentService;
 import ai.chat.service.FileStoragePort;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.jspecify.annotations.NonNull;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
@@ -20,10 +25,12 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @RequiredArgsConstructor
 @Service
+@Slf4j
 public class DocumentServiceImpl implements DocumentService
 {
 
@@ -35,14 +42,16 @@ public class DocumentServiceImpl implements DocumentService
     private final FileAssetRepository fileAssetRepository;
 
 
-// 2 варика: есть файл, нет файла. Загрузка через клиент и получение хеша и некст проверка и т.п.
+    // 2 варика: есть файл, нет файла. Загрузка через клиент и получение хеша и некст проверка и т.п.
     @Transactional
     @Override
-    public InitUploadResponse initDocumentUpload(InitUploadRequest request, UUID userId) {
+    public InitUploadResponse initDocumentUpload(InitUploadRequest request, UUID userId)
+    {
 
         FileAsset asset = fileAssetRepository.findByHash(request.md5Base64Hash()).orElse(null);
 
-        if (asset != null) {
+        if (asset != null)
+        {
             Document userDocument = saveToDatabaseAndPublishEvent(
                     request.fileName(),
                     asset,
@@ -75,27 +84,52 @@ public class DocumentServiceImpl implements DocumentService
 
         userDocument = documentRepository.save(userDocument);
 
-        if (isNewAsset){
-            UploadFileEvent event = new UploadFileEvent(
+        if (isNewAsset)
+        {
+            UploadFileEvent eventPayload = new UploadFileEvent(
                     asset.getId(),
                     minioProperties.getBucketName(),
                     minIoPath
             );
-            eventPublisher.publishEvent(event);
+//            eventPublisher.publishEvent(event);
+            try
+            {
+                OutboxEvent outbox = OutboxEvent.builder()
+                        .aggregateType("FileAsset")
+                        .aggregateID(asset.getId())
+                        .eventType("UploadFileEvent")
+                        .payload(objectMapper.writeValueAsString(eventPayload))
+                        .topic("document-parse-tasks")
+                        .state(OutboxEvent.OutboxEventState.PENDING)
+                        .nextAttemptAt(LocalDateTime.now())
+                        .build();
+
+                // Сохраняем в БД. Если БД упадет, откатится и Документ, и Outbox!
+                outboxEventRepository.save(outbox);
+            } catch (JsonProcessingException e)
+            {
+                log.error("Failed to serialize Outbox payload", e);
+                throw new RuntimeException("Serialization error", e);
+            }
         }
 
         return userDocument;
     }
 
+    private final ObjectMapper objectMapper;
+    private final OutboxEventRepository outboxEventRepository;
+
 
     @Transactional
     @Override
-    public DocumentDto confirmDocumentUpload(ConfirmUploadRequest request, UUID userId) {
+    public DocumentDto confirmDocumentUpload(ConfirmUploadRequest request, UUID userId)
+    {
 
         FileAsset asset = fileAssetRepository.findByHash(request.md5Base64Hash()).orElse(null);
 
         boolean isNewAsset = false;
-        if (asset == null) {
+        if (asset == null)
+        {
             asset = FileAsset.builder()
                     .minioBucket(minioProperties.getBucketName())
                     .minioPath(request.minioPath())
@@ -113,8 +147,6 @@ public class DocumentServiceImpl implements DocumentService
 
         return documentMapper.toDto(userDocument);
     }
-
-
 
 
     @Override

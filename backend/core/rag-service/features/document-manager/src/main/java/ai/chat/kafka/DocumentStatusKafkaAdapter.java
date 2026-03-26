@@ -26,7 +26,6 @@ public class DocumentStatusKafkaAdapter
 
     {
         try {
-            // Ручками превращаем блядский JSON в объект
             DocumentStatusUpdateEvent rawEvent = objectMapper.readValue(rawJson, DocumentStatusUpdateEvent.class);
 
             DocumentStatus status = DocumentStatus.valueOf(rawEvent.status().toUpperCase());
@@ -42,7 +41,8 @@ public class DocumentStatusKafkaAdapter
             log.debug("Published internal event for document: {}", rawEvent.fileAssetId());
 
         } catch (Exception e) {
-            log.error("Пиздец при парсинге JSON или обработке статуса. JSON: {}", rawJson, e);
+            log.error("Ошибка при парсинге JSON или обработке статуса. JSON: {}", rawJson, e);
+            throw new RuntimeException("Failed to process message, sending to DLQ", e);
         }
 
     }
