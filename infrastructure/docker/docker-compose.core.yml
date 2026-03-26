@@ -123,7 +123,7 @@ services:
   # ── Document Parser (Python) ───────────────────────────────────────────────
   doc-parser:
     build:
-      context: ../doc-parser-python
+      context: ../../backend/python/doc-parser-python
       dockerfile: Dockerfile
     container_name: rag-doc-parser
     restart: unless-stopped

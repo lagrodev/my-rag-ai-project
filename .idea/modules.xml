@@ -6,6 +6,8 @@
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/core/rag-service/app/backend.core.rag-service.app.test.iml" filepath="$PROJECT_DIR$/.idea/modules/core/rag-service/app/backend.core.rag-service.app.test.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/core/rag-service/common/core-utils/backend.core.rag-service.common.core-utils.main.iml" filepath="$PROJECT_DIR$/.idea/modules/core/rag-service/common/core-utils/backend.core.rag-service.common.core-utils.main.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/core/rag-service/features/document-manager/backend.core.rag-service.features.document-manager.main.iml" filepath="$PROJECT_DIR$/.idea/modules/core/rag-service/features/document-manager/backend.core.rag-service.features.document-manager.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/my-rag-ai-project.iml" filepath="$PROJECT_DIR$/.idea/modules/my-rag-ai-project.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/my-rag-ai-project.backend.iml" filepath="$PROJECT_DIR$/.idea/modules/my-rag-ai-project.backend.iml" />
     </modules>
   </component>
 </project>
