@@ -26,3 +26,16 @@ backend/java/*/build/
 # Environment
 .env
 
+# Python
+**/.venv/
+**/__pycache__/
+
+# Gradle (для подмодулей)
+**/gradlew
+**/gradlew.bat
+**/gradle/wrapper/
+
+# IDE & Editors
+**/.idea/
+**/.obsidian/
+**/*.iml
