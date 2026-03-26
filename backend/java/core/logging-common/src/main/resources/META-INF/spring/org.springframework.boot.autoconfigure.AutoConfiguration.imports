@@ -1,0 +1,3 @@
+ai.chat.backend.logging_common.config.LoggingAutoConfiguration
+ai.chat.backend.logging_common.config.ServletLoggingConfiguration
+ai.chat.backend.logging_common.config.ReactiveLoggingConfiguration

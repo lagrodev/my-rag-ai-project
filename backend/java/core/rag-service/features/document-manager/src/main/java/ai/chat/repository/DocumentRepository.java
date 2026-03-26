@@ -1,0 +1,40 @@
+package ai.chat.repository;
+
+import ai.chat.entity.Document;
+import ai.chat.entity.FileAsset;
+import org.jspecify.annotations.NonNull;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.stereotype.Repository;
+
+import java.util.Optional;
+import java.util.UUID;
+
+@Repository
+public interface DocumentRepository extends JpaRepository<@NonNull Document, @NonNull UUID> {
+
+    Page<@NonNull Document> findByFilenameContainingIgnoreCase(String filename, Pageable pageable);
+
+    Page<@NonNull Document> findByFilenameContainingIgnoreCaseAndUploadedBy(String filename, UUID uploadedBy, Pageable pageable);
+
+    Page<@NonNull Document>  findAllByUploadedBy(UUID uploadedBy, Pageable pageable);
+
+    @Query(
+            """
+            select d from Document d
+            join fetch d.fileAsset
+            where d.id = :id and d.uploadedBy = :uploadedBy
+        """
+    )
+    Optional<Document> findByIdAndUserIdWithAsset(UUID id, UUID uploadedBy);
+
+    @Query(
+            """
+SELECT d.fileAsset from Document d
+WHERE d.id = :documentId and d.uploadedBy = :userId
+"""
+    )
+    Optional<FileAsset> findAssetIdByDocumentIdAndUserId(UUID documentId, UUID userId);
+}
